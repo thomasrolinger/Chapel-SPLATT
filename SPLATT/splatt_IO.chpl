@@ -8,6 +8,7 @@
 
 module splatt_IO {
     use IO;
+    use Base;
     // Open a file. Returns file handle/pointer
     proc open_f(fname: string, mode: iomode): file
     {
@@ -17,6 +18,7 @@ module splatt_IO {
         }
         catch {
             writeln("***ERROR: Cannot open ", fname);
+            exit(-1);
         }
         return f;
     }
@@ -72,17 +74,65 @@ module splatt_IO {
         var val_width: uint(64);
     }
 
-    // Populate a binary header from an input file
-    proc read_binary_header(fin: file, header: bin_header)
+    // Populate a binary header from an input file. startPos refers to the byte offset
+    // in the file to start reading from
+    proc read_binary_header(fin: file, header: bin_header, ref startPos: idx_t)
     {
         try {
             // Create reader to read magic, idx_width and val_width
-            var r = fin.reader(kind=ionative, locking=false, start=0, end=32+64+64);
+            var r = fin.reader(kind=ionative, locking=false, start=startPos, end=20);
             r.read(header.magic, header.idx_width, header.val_width);
             r.close();
+            // updates startPos, since we passed in by reference
+            startPos += 20;
         }
         catch {
             writeln("ERROR: Could not read header from file");
+            exit(-1);
+        }
+        // Check for correct widths
+        if header.idx_width > SPLATT_IDX_TYPEWIDTH / 8 {
+            writeln("ERROR: Input has ", header.idx_width*8, "-bit integers but SPLATT_IDX_TYPEWIDTH is ", SPLATT_IDX_TYPEWIDTH, "-bits");
+            exit(-1);
+        }
+        if header.val_width > SPLATT_VAL_TYPEWIDTH / 8 {
+            writeln("ERROR: Input has ", header.val_width*8, "-bit floating point values but SPLATT_VAL_TYPEWIDTH is ", SPLATT_VAL_TYPEWIDTH, "-bits");
+            exit(-1);
+        }
+    }
+
+    // Fill an array of idx_t with values from a binary file. 'header' tells us whether
+    // we can just read() the whole array or must read one at a time.
+    // If the tensor was large enough that we needed 64-bit ints to represent its indices,
+    // then we can read in the entire thing (we hard-code our indices as 64-bit for now).
+    // Otherwise, we need to read in 32-bit values.
+    proc fill_binary_idx(buffer, count : idx_t, header: bin_header, fin: file, ref startPos: idx_t)
+    {
+        try {
+            var idxSize : idx_t;
+            if header.idx_width == SPLATT_IDX_TYPEWIDTH/8 {
+                idxSize = SPLATT_IDX_TYPEWIDTH/8;
+            }
+            else {
+                idxSize = 4;
+            }
+            // Start the reader where we left off from read_binary_header
+            var endPos = startPos;
+            for i in 0..count-1 {
+                startPos = endPos;
+                endPos = startPos + idxSize;
+                var r = fin.reader(kind=ionative, locking=false, start=startPos, end=endPos);
+                var temp : uint(32);
+                r.read(temp);
+                buffer(i) = temp;
+                r.close();
+            }   
+            // update startPos
+            startPos = endPos;
+        }
+        catch {
+            writeln("ERROR: Failed to read indices from file");
+            exit(-1);
         }
     }
 }

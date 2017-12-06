@@ -1,7 +1,7 @@
 /*
     Author: Thomas Rolinger (tbrolin@cs.umd.edu)
     Date:   12/05/2017
-    File:   CSF.chpl
+    File:   base.chpl
 
     Description:    This is a module file that has various constants and other
                     information used throughout SPLATT
@@ -27,6 +27,8 @@ module Base {
     const DEFAULT_ITS: idx_t = 50;
     const DEFAULT_WRITE: int = 1;
     const DEFAULT_TIEL: int = 0;
+    const SPLATT_IDX_TYPEWIDTH = 64;
+    const SPLATT_VAL_TYPEWIDTH = 64;
     const DEFAULT_NNZ: int = 1000;  /** Default number of non-zeros. Used when creating
                                         the domains below. */    
 
@@ -35,9 +37,9 @@ module Base {
     *   Commonly used domains
     *
     ******************************/
-    var NNZ_d : domain(1) = 0..DEFAULT_NNZ;                   /** Domain for NNZ indices. Gets resized once NNZ is known */
-    var NUM_MODES_d: domain(1) = 0..MAX_NMODES;               /** Possibly resize this once the
+    var NNZ_d : domain(1) = 0..DEFAULT_NNZ-1;                   /** Domain for NNZ indices. Gets resized once NNZ is known */
+    var NUM_MODES_d: domain(1) = 0..MAX_NMODES-1;               /** Possibly resize this once the
                                                                   number of modes is known */
-    var COORD_d: domain(2) = {0..MAX_NMODES, 0..DEFAULT_NNZ}; /** Domain for 2D array with m rows and
+    var COORD_d: domain(2) = {0..MAX_NMODES-1, 0..DEFAULT_NNZ-1}; /** Domain for 2D array with m rows and
                                                                   NNZ columns. Gets resized once m and NNZ is known */
 }
