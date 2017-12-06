@@ -7,9 +7,10 @@
                     functions and structures for SPLATT.
 */
 
-use Base
 
 module sptensor {
+    use Base;
+    use splatt_IO;
     /*****************************
     *
     *   Structures and Enums
@@ -17,7 +18,7 @@ module sptensor {
     ******************************/
 
     // Types of tensor supported by SPLATT
-    enum tt_type =  
+    enum tt_type  
     {
         SPLATT_3MODE, /** Three-mode tensors. */
         SPLATT_NMODE  /** Tensors of with arbitrary numbers of modes.
@@ -39,7 +40,7 @@ module sptensor {
         var ind: [COORD_d] idx_t;       /** An m x nnz matrix that contains the coordinates of each
                                             non-zero. The nth non-zero is accessed via ind[0][n], ind[1][n],
                                             ..., ind[m][n]. */
-        var vals: [NNZ_D] val_t;        /** An array containing the values of each non-zero */
+        var vals: [NNZ_d] val_t;        /** An array containing the values of each non-zero */
         var tiled: int;                 /** Specifies whether sptensor_t has been titled; used by ftensor_t */
 
         /*######################################
@@ -47,11 +48,17 @@ module sptensor {
         #   Class functions
         #
         ########################################*/
-        // Loads a sparse tensor from the file ifname.
-        // Modifies the class/struct fields
-        proc tt_read(ifname: string) 
-        {
 
+        /*########################################################################
+        #   Descriptipn:    Reads tensor from file and creates sptensor_t class
+        #
+        #   Parameters:     ifname (string):    Name of file to read from
+        #
+        #   Return:         sptensor_t: Parsed tensor
+        ##########################################################################*/
+        proc tt_read(ifname: string)
+        {
+            tt_read_file(ifname, this);
         }
     }
 }
