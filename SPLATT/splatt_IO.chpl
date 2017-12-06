@@ -116,19 +116,18 @@ module splatt_IO {
             else {
                 idxSize = 4;
             }
-            // Start the reader where we left off from read_binary_header
-            var endPos = startPos;
-            for i in 0..count-1 {
-                startPos = endPos;
-                endPos = startPos + idxSize;
-                var r = fin.reader(kind=ionative, locking=false, start=startPos, end=endPos);
+            // Start the reader where we left off from read_binary_header. We can do the reading
+            // in parallel, since each loop iteration is reading a distinct value from the file.
+            var initialStart = startPos;
+            forall i in 0..count-1 {
+                var r = fin.reader(kind=ionative, locking=false, start=(i*idxSize)+initialStart, end=(i*idxSize)+initialStart+idxSize);
                 var temp : uint(32);
                 r.read(temp);
                 buffer(i) = temp;
                 r.close();
             }   
             // update startPos
-            startPos = endPos;
+            startPos = (count*idxSize) + startPos;
         }
         catch {
             writeln("ERROR: Failed to read indices from file");
