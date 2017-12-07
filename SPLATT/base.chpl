@@ -36,4 +36,8 @@ module Base {
                                                                   number of modes is known */
     var COORD_d: domain(2) = {0..MAX_NMODES-1, 0..DEFAULT_NNZ-1}; /** Domain for 2D array with m rows and
                                                                   NNZ columns. Gets resized once m and NNZ is known */
+    var CSF_SPARSITY_VALS_d : domain(1) = 0..DEFAULT_NNZ-1;     /** The csf_sparsity class has a 'vals' array whose length
+                                                                    is not known until runtime. We'll resize this then */
+    var NUM_TILES_d : domain(1) = 0..MAX_NMODES-1;              /** Number of tiles in CSF; not known until runtime so we'll
+                                                                    resize this later. */
 }
