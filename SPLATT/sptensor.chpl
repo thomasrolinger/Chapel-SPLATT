@@ -60,5 +60,22 @@ module sptensor {
         {
             tt_read_file(ifname, this);
         }
+
+        /*########################################################################
+        #   Descriptipn:    Calculates the tensor of the tensor and returns it
+        #
+        #   Parameters:     None (called on this instance)
+        #
+        #   Return:         density: real
+        ##########################################################################*/
+        proc tt_calcDensity() : real
+        {
+            var root : real = nnz**(1.0/nmodes:real);
+            var density : real = 1.0;
+            for m in 0..nmodes-1 {
+                density *= root / dims[m]:real;
+            }
+            return density;
+        }
     }
 }
