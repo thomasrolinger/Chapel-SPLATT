@@ -10,27 +10,21 @@
 module Base {
     /*****************************
     *
-    *   Defines
-    *
-    ******************************/
-    const MAX_NMODES: int = 8;
-    type idx_t = int(64);       /** 64-bit ints for indices */
-    type val_t = real(64);      /** doubles */
-
-    /*****************************
-    *
     *   Defaults
     *
     ******************************/
-    const DEFAULT_TOL: real(64) = 1e-5;
-    const DEFAULT_NFACTORS: idx_t = 10;
-    const DEFAULT_ITS: idx_t = 50;
+    const MAX_NMODES: int = 8;
+    const DEFAULT_TOL: real = 1e-5;
+    const DEFAULT_NFACTORS: int  = 10;
+    const DEFAULT_ITS: int = 50;
+    const DEFAULT_CSF: string = "two";
+    const DEFAULT_REG: int = 0;
     const DEFAULT_WRITE: int = 1;
-    const DEFAULT_TIEL: int = 0;
-    const SPLATT_IDX_TYPEWIDTH = 64;
-    const SPLATT_VAL_TYPEWIDTH = 64;
+    const DEFAULT_TILE: int = 0;
     const DEFAULT_NNZ: int = 1000;  /** Default number of non-zeros. Used when creating
-                                        the domains below. */    
+                                        the domains below. */
+    const SPLATT_IDX_TYPEWIDTH: int = 64;
+    const SPLATT_VAL_TYPEWIDTH: int = 64;
 
     /*****************************
     *

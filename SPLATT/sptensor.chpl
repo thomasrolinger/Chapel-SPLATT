@@ -34,13 +34,13 @@ module sptensor {
         ########################################*/
         
         var tensorType: tt_type;        /** Type of tensor represented */
-        var nmodes: idx_t;              /** The number of modes in the tensor, denoted as 'm' */
-        var nnz: idx_t;                 /** The number of non-zeros in the tensor */
-        var dims: [NUM_MODES_d] idx_t;  /** An array that contains the dimension of each mode */
-        var ind: [COORD_d] idx_t;       /** An m x nnz matrix that contains the coordinates of each
+        var nmodes: int;                /** The number of modes in the tensor, denoted as 'm' */
+        var nnz: int;                   /** The number of non-zeros in the tensor */
+        var dims: [NUM_MODES_d] int;    /** An array that contains the dimension of each mode */
+        var ind: [COORD_d] int;         /** An m x nnz matrix that contains the coordinates of each
                                             non-zero. The nth non-zero is accessed via ind[0][n], ind[1][n],
                                             ..., ind[m][n]. */
-        var vals: [NNZ_d] val_t;        /** An array containing the values of each non-zero */
+        var vals: [NNZ_d] real;         /** An array containing the values of each non-zero */
         var tiled: int;                 /** Specifies whether sptensor_t has been titled; used by ftensor_t */
 
         /*######################################

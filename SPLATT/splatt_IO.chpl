@@ -10,28 +10,6 @@ module splatt_IO {
     use IO;
     use Base;
     use sptensor;
-    
-    /*****************************
-    *
-    *   Enums and Classes
-    *
-    ******************************/
-    enum splatt_file_type 
-    {
-        SPLATT_FILE_BIN_COORD  /** A binary version of the coordinate format */
-    };
-
-    // Associative domain/array that maps file extensions (strings) to the enums above
-    var file_extensions_d = {".bin"};
-    var file_extensions : [file_extensions_d] int;
-    file_extensions[".bin"] = splatt_file_type.SPLATT_FILE_BIN_COORD;
-
-    enum splatt_magic_type
-    {
-        SPLATT_BIN_COORD,
-        SPLATT_BIN_CSF
-    };
-
     /*
         This class is written to the beginning of any binary tensor file written by SPLATT
         As we aren't going to bother implementing file writing, we only use this class when
@@ -112,7 +90,7 @@ module splatt_IO {
         // Read in header
         var header: bin_header;
         header = new bin_header();
-        var startPos = 0;
+        var startPos: int = 0;
         // startPos is updated in this function so we know where to read next
         p_read_binary_header(fin, header, startPos);
 
@@ -124,10 +102,10 @@ module splatt_IO {
             fill_binary_idx by reference, so it can be treated like an array.
             But I don't think we can do that in Chapel, so it's a single-element array.
         */
-        var temp : [0..0] idx_t;
+        var temp : [0..0] int;
         // startPos is also updated by this function
         p_fill_binary_idx(temp, 1, header, fin, startPos);
-        // Pull out the nmodes from temp and store it as a single idx_t
+        // Pull out the nmodes from temp and store it as a single int
         var nmodes = temp(0);
         // dims is an array of ints where each element holds the size of a mode.
         var dims : [0..nmodes-1] int;
@@ -171,7 +149,7 @@ module splatt_IO {
     #                                           into. This is created by the
     #                                           caller and then modified by
     #                                           this function.
-    #                   startPos (idx_t):       The byte-offset in the file
+    #                   startPos (int):         The byte-offset in the file
     #                                           to start reading from. This
     #                                           value is updated by this
     #                                           function to reflect the
@@ -180,7 +158,7 @@ module splatt_IO {
     #
     #   Return:         None
     ##########################################################################*/
-    private proc p_read_binary_header(fin: file, header: bin_header, ref startPos: idx_t)
+    private proc p_read_binary_header(fin: file, header: bin_header, ref startPos: int)
     {
         try {
             // Create reader to read magic, idx_width and val_width
@@ -201,8 +179,8 @@ module splatt_IO {
             exit(-1);
         }
         // Check for correct widths
-        if header.idx_width > SPLATT_IDX_TYPEWIDTH / 8 {
-            writeln("ERROR: Input has ", header.idx_width*8, "-bit integers but SPLATT_IDX_TYPEWIDTH is ", SPLATT_IDX_TYPEWIDTH, "-bits");
+        if header.idx_width > 8 {
+            writeln("ERROR: Input has ", header.idx_width*8, "-bit integers but SPLATT uses 64-bit integers");
             try {
                 fin.close();
             }
@@ -211,8 +189,8 @@ module splatt_IO {
             }
             exit(-1);
         }
-        if header.val_width > SPLATT_VAL_TYPEWIDTH / 8 {
-            writeln("ERROR: Input has ", header.val_width*8, "-bit floating point values but SPLATT_VAL_TYPEWIDTH is ", SPLATT_VAL_TYPEWIDTH, "-bits");
+        if header.val_width > 8 {
+            writeln("ERROR: Input has ", header.val_width*8, "-bit floating point values but SPLATT uses 64-bit float point values");
             try {
                 fin.close();
             }
@@ -224,19 +202,19 @@ module splatt_IO {
     }
 
     /*########################################################################
-    #   Descriptipn:    Reads count idx_t-bit elements from the file associated 
+    #   Descriptipn:    Reads count 64-bit elements from the file associated 
     #                   with fin and stores the elements into buffer. Reading
     #                   starts at the byte-offset represented by startPos.
     #                   This function modifies buffer and startPos. The 
     #                   header is used to determine the actual size of each 
     #                   element in the file to be read.
     #
-    #   Parameters:     buffer (idx_t array):   Array of idx_t to store elements
-    #                   count (idx_t):          Number of elements to read
+    #   Parameters:     buffer (int array):     Array of int to store elements
+    #                   count (int):            Number of elements to read
     #                   header (bin_header):    Binary header that has been
     #                                           populated previously.
     #                   fin (file):             The opened file to read from
-    #                   startPos (idx_t):       The byte-offset in the file
+    #                   startPos (int):         The byte-offset in the file
     #                                           to start reading from. This
     #                                           value is updated by this
     #                                           function to reflect the
@@ -245,38 +223,52 @@ module splatt_IO {
     #
     #   Return:         None
     ##########################################################################*/
-    private proc p_fill_binary_idx(buffer, count : idx_t, header: bin_header, fin: file, ref startPos: idx_t)
+    private proc p_fill_binary_idx(buffer, count : int, header: bin_header, fin: file, ref startPos: int)
     {
+        // Read count idxSize-bit elements in chunks. We either read in the values as if they
+        // are 64-bits each or 32-bits each. This depends on the idx_width as defined in the
+        // header.
         try {
-            var idxSize : idx_t;
-            if header.idx_width == SPLATT_IDX_TYPEWIDTH/8 {
-                idxSize = SPLATT_IDX_TYPEWIDTH/8;
+            var idxSize : int;
+            var initialStart = startPos;
+            const BUF_LEN: int = 1024*1024;
+            // The elements in the file are 64-bits each
+            if header.idx_width == 8 {
+                idxSize = 8;
+                forall i in 0..count-1 by BUF_LEN {
+                    // How many elements to read in
+                    var read_count = min(BUF_LEN, count-i);
+                    // Temporary array to read into
+                    var temp : [0..read_count-1] int;
+                    // Starting and ending pos for this chunk
+                    var st = (i*idxSize*read_count) + initialStart;
+                    var endPos = st + read_count*idxSize;
+                    var r = fin.reader(kind=ionative, locking=false, start=st, end=endPos);
+                    r.read(temp);
+                    // Copy over the chunk to the correct position in buffer
+                    for n in 0..read_count-1 {
+                        buffer(n+i) = temp(n);
+                    }
+                    r.close();
+                }
             }
+            // Else, the elements in the file are 32-bits each
             else {
                 idxSize = 4;
+                forall i in 0..count-1 by BUF_LEN {
+                    var read_count = min(BUF_LEN, count-i);
+                    var temp : [0..read_count-1] int(32);
+                    var st = (i*idxSize*read_count) + initialStart;
+                    var endPos = st + read_count*idxSize;
+                    var r = fin.reader(kind=ionative, locking=false, start=st, end=endPos);
+                    r.read(temp);
+                    for n in 0..read_count-1 {
+                        buffer(n+i) = temp(n);
+                    }
+                    r.close();
+                }   
             }
-            // Read count uint32-bit elements in chunks. Ideally, we'd like to read in all the elements at once,
-            // but buffer is an array of idx_t-bit elements, which may not necessarily be 32-bits. However, we
-            // can parallelize this.
-            var initialStart = startPos;
-            const BUF_LEN = 1024*1024;
-            forall i in 0..count-1 by BUF_LEN {
-                // How many elements to read in
-                var read_count = min(BUF_LEN, count-i);
-                // Temporary array of uint32's to read into
-                var temp : [0..read_count-1] uint(32);
-                // Starting and ending pos for this chunk
-                var st = (i*idxSize*read_count) + initialStart;
-                var endPos = st + read_count*idxSize;
-                var r = fin.reader(kind=ionative, locking=false, start=st, end=endPos);
-                r.read(temp);
-                // Copy over the chunk to the correct position in buffer
-                for n in 0..read_count-1 {
-                    buffer(n+i) = temp(n);
-                }
-                r.close();
-            }   
-            // update startPos
+            // Update startPos
             startPos = (count*idxSize) + startPos;
         }
         catch {
@@ -294,12 +286,12 @@ module splatt_IO {
     /*########################################################################
     #   Descriptipn:    Same as fill_binary_idx but for values (floating point) 
     #
-    #   Parameters:     buffer (val_t array):   Array of val_t to store elements
-    #                   count (idx_t):          Number of elements to read
+    #   Parameters:     buffer (real array):    Array of real to store elements
+    #                   count (int):            Number of elements to read
     #                   header (bin_header):    Binary header that has been
     #                                           populated previously.
     #                   fin (file):             The opened file to read from
-    #                   startPos (idx_t):       The byte-offset in the file
+    #                   startPos (int):         The byte-offset in the file
     #                                           to start reading from. This
     #                                           value is updated by this
     #                                           function to reflect the
@@ -308,35 +300,50 @@ module splatt_IO {
     #
     #   Return:         None
     ##########################################################################*/
-    private proc p_fill_binary_val(buffer, count : idx_t, header: bin_header, fin: file, ref startPos: idx_t)
+    private proc p_fill_binary_val(buffer, count : int, header: bin_header, fin: file, ref startPos: int)
     {
+        // Read count idxSize-bit elements in chunks. We either read in the values as if they
+        // are 64-bits each or 32-bits each. This depends on the idx_width as defined in the
+        // header.
         try {
-            var valSize : idx_t;
-            if header.val_width == SPLATT_VAL_TYPEWIDTH/8 {
-                valSize = SPLATT_VAL_TYPEWIDTH/8;
+            var valSize : int;
+            var initialStart = startPos;
+            const BUF_LEN : int = 1024*1024;
+            if header.val_width == 8 {
+                valSize = 8;
+                forall i in 0..count-1 by BUF_LEN {
+                    // How many elements to read in
+                    var read_count = min(BUF_LEN, count-i);
+                    // Temporary array to read into
+                    var temp : [0..read_count-1] real;
+                    // Starting and ending pos for this chunk
+                    var st = (i*valSize*read_count) + initialStart;
+                    var endPos = st + read_count*valSize;
+                    var r = fin.reader(kind=ionative, locking=false, start=st, end=endPos);
+                    r.read(temp);
+                    // Copy over the chunk to the correct position in buffer
+                    for n in 0..read_count-1 {
+                        buffer(n+i) = temp(n);
+                    }
+                    r.close();
+                }
             }
             else {
                 valSize = 4;
+                forall i in 0..count-1 by BUF_LEN {
+                    var read_count = min(BUF_LEN, count-i);
+                    var temp : [0..read_count-1] real(32);
+                    var st = (i*valSize*read_count) + initialStart;
+                    var endPos = st + read_count*valSize;
+                    var r = fin.reader(kind=ionative, locking=false, start=st, end=endPos);
+                    r.read(temp);
+                    for n in 0..read_count-1 {
+                        buffer(n+i) = temp(n);
+                    }
+                    r.close();
+                }   
             }
-            var initialStart = startPos;
-            const BUF_LEN = 1024*1024;
-            forall i in 0..count-1 by BUF_LEN {
-                // How many elements to read in
-                var read_count = min(BUF_LEN, count-i);
-                // Temporary array of real32's to read into
-                var temp : [0..read_count-1] real(32);
-                // Starting and ending pos for this chunk
-                var st = (i*valSize*read_count) + initialStart;
-                var endPos = st + read_count*valSize;
-                var r = fin.reader(kind=ionative, locking=false, start=st, end=endPos);
-                r.read(temp);
-                // Copy over the chunk to the correct position in buffer
-                for n in 0..read_count-1 {
-                    buffer(n+i) = temp(n);
-                }
-                r.close();
-            }     
-            // update startPos
+            // Update startPos
             startPos = (count*valSize) + startPos;
         }
         catch {
@@ -351,6 +358,3 @@ module splatt_IO {
         }
     }
 }
-
-
-
