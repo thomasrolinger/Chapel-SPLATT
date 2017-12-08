@@ -185,8 +185,6 @@ module CSF {
                 writeln("ERROR: csf_mode_type ", which, " not recognized");
             }
         }
-        writeln("Mode: ", which);
-        writeln("perm_dims: ", perm_dims);
     }
 
     /*****************************
@@ -218,7 +216,19 @@ module CSF {
         // Get the indices in order
         csf_find_mode_order(tt.dims, tt.nmodes, mode_type, mode, ct.dim_perm);  
 
-        // More to come...
+        // Tiling option
+        ct.which_tile = splatt_opts.tiling;
+        select(ct.which_tile) {
+            when splatt_tile_type.SPLATT_NOTILE {
+                p_csf_alloc_untiled(ct, tt);
+            }
+            when splatt_tile_type.SPLATT_DENSETILE {
+                p_csf_alloc_densetile(ct, tt, splatt_opts);
+            }
+            otherwise {
+                writeln("ERROR: Tiling option not supported");
+            }
+        }
     }
 
     /*########################################################################
@@ -350,5 +360,39 @@ module CSF {
                 break;
             }
         }
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Allocate and fill a CSF tensor from a coordinate tensor
+    #                   without tiling.
+    #
+    #   Parameters:     ct (splatt_csf):    The CSF tensor to fill out
+    #                   tt (sptensor_t):    The sparse tensor to start from
+    #
+    #   Return:         None
+    ########################################################################*/
+    proc p_csf_alloc_untiled(ct : splatt_csf, tt : sptensor_t)
+    {
+        var nmodes : int = tt.nmodes;
+        //tt_sort(tt, ct.dim_perm[0], ct.dim_perm);
+
+        ct.ntiles = 1;
+        ct.tile_dims = 1;
+        return;
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Reorder the nonzeros in a sparse tensor using dense
+    #                   tiling and fill a CSF tensor with the data
+    #
+    #   Parameters:     ct (splatt_csf):            The CSF tensor to fill out
+    #                   tt (sptensor_t):            The sparse tensor to start from
+    #                   splatt_opts (cpd_cmd_args): The arguments/options
+    #
+    #   Return:         None
+    ########################################################################*/
+    proc p_csf_alloc_densetile(ct : splatt_csf, tt : sptensor_t, splatt_opts : cpd_cmd_args)
+    {
+        return;
     }
 }
