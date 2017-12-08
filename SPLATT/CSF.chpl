@@ -11,6 +11,7 @@ module CSF {
     use Base;
     use sptensor;
     use Args;
+    use Sort;
 
     /*****************************
     *
@@ -100,8 +101,254 @@ module CSF {
     *   Public Functions
     *
     ******************************/
-    proc csf_alloc(tt : sptensor_t, args : cpd_cmd_args) : splatt_csf
+    /*########################################################################
+    #   Descriptipn:    Public function for allocating CSF tensor
+    #
+    #   Parameters:     tt (sptensor_t):    The coordinate tensor to work from
+    #                   args (cpd_cmd_args): Arguments
+    #
+    #   Return:         splatt_csf: The CSF tensor
+    ########################################################################*/
+    proc csf_alloc(tt : sptensor_t, args : cpd_cmd_args)
     {
+        /*
+            Array of splatt_csf's. If the allocation type is one, then
+            we only create a CSF for the 1 mode, if its two then we do
+            two modes and if its all, we do all modes. Regardless, we'll
+            return this entire array back.
+        */
+        var ret : [NUM_MODES_d] splatt_csf;
+        var last_mode : int = 0;
+        var temp : int = 0;
 
-    }                                                       
+        select(args.numCSF) {
+            when "one" {
+                ret[0] = new splatt_csf();
+                p_mk_csf(ret[0], tt, csf_mode_type.CSF_SORTED_SMALLFIRST, 0, args);
+            }
+            when "two" {
+                var ret : [0..1] splatt_csf;
+                ret[0] = new splatt_csf();
+                ret[1] = new splatt_csf();
+                p_mk_csf(ret[0], tt, csf_mode_type.CSF_SORTED_SMALLFIRST, 0, args);
+                /* 
+                    Don't tile last mode. Turn tiling off in args, allocate and then
+                    reset it back to whatevr it was
+                */
+                var oldTile = args.tiling;
+                args.tiling = 0;
+                last_mode = ret[0].dim_perm[tt.nmodes-1];
+                p_mk_csf(ret[1], tt, csf_mode_type.CSF_SORTED_MINUSONE, last_mode, args);
+                args.tiling = oldTile;            
+            }
+            when "all" {
+                for m in NUM_MODES_d {
+                    ret[m] = new splatt_csf();
+                    p_mk_csf(ret[m], tt, csf_mode_type.CSF_SORTED_MINUSONE, m, args);
+                }
+            }   
+            otherwise {
+                writeln("ERROR: CSF allocation type '", args.numCSF, "' not recognized");
+            }
+        }
+        return ret;
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Order the indices of the tensor according to mode type.
+    #
+    #   Parameters:     dims ([]int):           Array of mode sizes
+    #                   nmodes (int):           Number of modes
+    #                   which (csf_mode_type):  Allocation scheme for CSF tensor
+    #                   mode (int):             Which mode 
+    #                   perm_dims ([]int):      Maps level of tensor to tensor modes
+    #
+    #   Return:         None
+    ########################################################################*/
+    proc csf_find_mode_order(dims : [NUM_MODES_d] int, nmodes : int, which : csf_mode_type,
+                             mode : int, perm_dims : [NUM_MODES_d] int)
+    {
+        select(which) {
+            when csf_mode_type.CSF_SORTED_SMALLFIRST {
+                p_order_dims_small(dims, nmodes, perm_dims);
+            }
+            when csf_mode_type.CSF_SORTED_BIGFIRST {
+                p_order_dims_large(dims, nmodes, perm_dims);
+            }
+            when csf_mode_type.CSF_INORDER_MINUSONE {
+                p_order_dims_inorder(dims, nmodes, mode, perm_dims);
+            }
+            when csf_mode_type.CSF_SORTED_MINUSONE {
+                p_order_dims_minusone(dims, nmodes, mode, perm_dims);
+            }
+            otherwise {
+                writeln("ERROR: csf_mode_type ", which, " not recognized");
+            }
+        }
+        writeln("Mode: ", which);
+        writeln("perm_dims: ", perm_dims);
+    }
+
+    /*****************************
+    *
+    *   Private Functions
+    *
+    ******************************/
+    
+    /*########################################################################
+    #   Descriptipn:    Allocate and fill CSF tensor.
+    #
+    #   Parameters:     ct (splatt_csf):            The CSF tensor to fill.
+    #                   tt (sptensor_t):            The coordinate tensor to work from
+    #                   mode_type (csf_mode_type):  The allocation scheme for 
+    #                                               the CSF tensor.
+    #                   mode (int):                 Which mode we are converting for
+    #                   splatt_opts (cpd_cmd_args): Arguments
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_mk_csf(ct : splatt_csf, tt : sptensor_t, mode_type : csf_mode_type,
+                          mode : int, splatt_opts : cpd_cmd_args)
+    {
+        // Set nnz, nmodes and dims in CSF
+        ct.nnz = tt.nnz;
+        ct.nmodes = tt.nmodes;
+        ct.dims = tt.dims;
+
+        // Get the indices in order
+        csf_find_mode_order(tt.dims, tt.nmodes, mode_type, mode, ct.dim_perm);  
+
+        // More to come...
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Find a permutation of modes that results in
+    #                   non-increasing mode size.
+    #
+    #   Parameters:     dims ([]int):       Array of mode sizes
+    #                   nmodes (int):       Number of modes
+    #                   perm_dims ([]int):  Maps level of tensor to tensor modes
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_order_dims_small(dims : [NUM_MODES_d] int, nmodes : int,  perm_dims : [NUM_MODES_d] int)
+    {
+        var sorted : [NUM_MODES_d] int;
+        var matched : [NUM_MODES_d] int;
+        sorted = dims;
+        matched = 0;
+        // Sort 'sorted' using quicksort
+        sort(sorted);
+
+        /*
+            Re-associate the mode numbers with the sorted
+            dimensions    
+        */
+        for mfind in NUM_MODES_d {
+            for mcheck in NUM_MODES_d {
+                if sorted[mfind] == dims[mcheck] && !matched[mcheck] {
+                    perm_dims[mfind] = mcheck;
+                    matched[mcheck] = 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Find a permutation of modes that results in
+    #                   non-decreasing mode size.
+    #
+    #   Parameters:     dims ([]int):       Array of mode sizes
+    #                   nmodes (int):       Number of modes
+    #                   perm_dims ([]int):  Maps level of tensor to tensor modes
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_order_dims_large(dims : [NUM_MODES_d] int, nmodes : int,  perm_dims : [NUM_MODES_d] int)
+    {
+        var sorted : [NUM_MODES_d] int;
+        var matched : [NUM_MODES_d] int;
+        sorted = dims;
+        matched = 0;
+        // Sort 'sorted' using quicksort, decreasing order
+        sort(sorted, comparator=reverseComparator);
+
+        /*
+            Re-associate the mode numbers with the sorted
+            dimensions    
+        */
+        for mfind in NUM_MODES_d {
+            for mcheck in NUM_MODES_d {
+                if sorted[mfind] == dims[mcheck] && !matched[mcheck] {
+                    perm_dims[mfind] = mcheck;
+                    matched[mcheck] = 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Find a permutation of modes such that the first mode
+    #                   is 'custom-mode' and the remaining are sorted in
+    #                   non-increasing order.
+    #
+    #   Parameters:     dims ([]int):       Array of mode sizes
+    #                   nmodes (int):       Number of modes
+    #                   custom_mode (int):  The mode to place first
+    #                   perm_dims ([]int):  Maps level of tensor to tensor modes
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_order_dims_minusone(dims : [NUM_MODES_d] int, nmodes : int,  
+                                       custom_mode : int, perm_dims : [NUM_MODES_d] int)
+    {
+        p_order_dims_small(dims, nmodes, perm_dims);
+
+        /* 
+            Find where custom_mode was placed and adjust from there. 
+            Get a c-pointer to perm_dims so we can use memmove.
+        */
+        for m in NUM_MODES_d {
+            if perm_dims[m] == custom_mode {
+                var arrayPtr = c_ptrTo(perm_dims);
+                c_memmove(arrayPtr+1, arrayPtr, m*8);
+                perm_dims[0] = custom_mode;
+                break;
+            }
+        }
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Find a permutation of modes such that the first mode
+    #                   is 'custom-mode' and the remaining are naturally ordered
+    #                   (0,1, ...).
+    #
+    #   Parameters:     dims ([]int):       Array of mode sizes
+    #                   nmodes (int):       Number of modes
+    #                   custom_mode (int):  The mode to place first
+    #                   perm_dims ([]int):  Maps level of tensor to tensor modes
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_order_dims_inorder(dims : [NUM_MODES_d] int, nmodes : int,
+                                       custom_mode : int, perm_dims : [NUM_MODES_d] int)
+    {
+        // Initialize to natural ordering
+        perm_dims = 0..nmodes-1;
+
+        /* 
+            Find where custom_mode was placed and adjust from there. 
+            Get a c-pointer to perm_dims so we can use memmove.
+        */
+        for m in NUM_MODES_d {
+            if perm_dims[m] == custom_mode {
+                var arrayPtr = c_ptrTo(perm_dims);
+                c_memmove(arrayPtr+1, arrayPtr, m*8);
+                perm_dims[0] = custom_mode;
+                break;
+            }
+        }
+    }
 }
