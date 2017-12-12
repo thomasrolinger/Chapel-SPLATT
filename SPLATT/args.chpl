@@ -27,6 +27,7 @@ module Args {
     config var csf: string = DEFAULT_CSF;
     config var tile: int = DEFAULT_TILE;
     config var seed: int = getCurrentTime():int;
+    config var threads: int = DEFAULT_NUM_THREADS;
 
     /*
         Utility methods to print help, usage, etc.
@@ -40,7 +41,7 @@ module Args {
     proc printUsageMsg(args: [] string)
     {
         writeln("Usage: ", args[0], " [--iters=NITERS] [--tol=TOLERANCE] [--reg=REGULARIZATION]");
-        writeln("             [--rank=RANK] [--csf=#CSF] [--tile=TILING] [--seed=SEED]");
+        writeln("             [--rank=RANK] [--csf=#CSF] [--tile=TILING] [--seed=SEED] [--threads=NTHREADS]");
     }
 
     proc printHelpMsg(args: [] string)
@@ -55,6 +56,7 @@ module Args {
         writeln("  --csf=#CSF           How many CSF to use {one, two, all} (default: two)");
         writeln("  --tile=TILING        Use tiling during SPLATT {0=no, 1=yes} (default: no)");
         writeln("  --seed=SEED          Random seed (default: current time)");
+        writeln("  --threads=NTHREADS   Number of tasks (threads) to yse (default=num cores)");
         writeln("");
         writeln("Report bugs to Thomas Rolinger <tbrolin@cs.umd.edu>");
     }
@@ -72,6 +74,7 @@ module Args {
         var tiling : int;
         var rndSeed : int; 
         var tensorFile : string;
+        var numThreads : int;
 
         /*
             Parses the arguments (mostly config arguments) and populates the fields
@@ -108,6 +111,7 @@ module Args {
             numCSF = csf;
             tiling = tile;
             rndSeed = seed;
+            numThreads = threads;
         }
     }
 }

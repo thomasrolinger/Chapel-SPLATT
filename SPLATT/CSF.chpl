@@ -217,7 +217,7 @@ module CSF {
         csf_find_mode_order(tt.dims, tt.nmodes, mode_type, mode, ct.dim_perm);  
 
         // Tiling option
-        ct.which_tile = splatt_opts.tiling;
+        ct.which_tile = splatt_opts.tiling : splatt_tile_type;
         select(ct.which_tile) {
             when splatt_tile_type.SPLATT_NOTILE {
                 p_csf_alloc_untiled(ct, tt);

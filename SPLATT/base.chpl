@@ -21,6 +21,7 @@ module Base {
     const DEFAULT_REG: int = 0;
     const DEFAULT_WRITE: int = 1;
     const DEFAULT_TILE: int = 0;
+    const DEFAULT_NUM_THREADS: int = here.numPUs();
     const DEFAULT_NNZ: int = 1000;  /** Default number of non-zeros. Used when creating
                                         the domains below. */
     const SPLATT_IDX_TYPEWIDTH: int = 64;

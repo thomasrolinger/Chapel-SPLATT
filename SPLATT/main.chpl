@@ -25,6 +25,8 @@ proc main(args: [] string)
     writeln("****************************************************************");
     writeln("");
 
+    writeln("Num threads: ", cpdArgs.numThreads);
+
     // Create sptensor and parse the input file
     var tt : sptensor_t;
     tt = new sptensor_t();
