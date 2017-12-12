@@ -247,13 +247,13 @@ module splatt_IO {
                     // Temporary array to read into
                     var temp : [0..read_count-1] int;
                     // Starting and ending pos for this chunk
-                    var st = (i*idxSize*read_count) + initialStart;
+                    var st = (i*idxSize) + initialStart;
                     var endPos = st + read_count*idxSize;
                     var r = fin.reader(kind=ionative, locking=false, start=st, end=endPos);
                     r.read(temp);
                     // Copy over the chunk to the correct position in buffer
                     for n in 0..read_count-1 {
-                        buffer(n+i) = temp(n);
+                        buffer[n+i] = temp[n];
                     }
                     r.close();
                 }
@@ -261,21 +261,21 @@ module splatt_IO {
             // Else, the elements in the file are 32-bits each
             else {
                 idxSize = 4;
-                forall i in 0..count-1 by BUF_LEN {
-                    var read_count = min(BUF_LEN, count-i);
-                    var temp : [0..read_count-1] int(32);
-                    var st = (i*idxSize*read_count) + initialStart;
+                forall n in 0..count-1 by BUF_LEN {
+                    var read_count = min(BUF_LEN, count-n);
+                    var temp : [0..read_count-1] uint(32);
+                    var st = (n*idxSize) + initialStart;
                     var endPos = st + read_count*idxSize;
                     var r = fin.reader(kind=ionative, locking=false, start=st, end=endPos);
                     r.read(temp);
-                    for n in 0..read_count-1 {
-                        buffer(n+i) = temp(n);
+                    for i in 0..read_count-1 {
+                        buffer[n+i] = temp[i];
                     }
                     r.close();
                 }   
             }
             // Update startPos
-            startPos = (count*idxSize) + startPos;
+            startPos += (count*idxSize);
         }
         catch {
             writeln("ERROR: Failed to read indices from file");
@@ -323,34 +323,34 @@ module splatt_IO {
                     // Temporary array to read into
                     var temp : [0..read_count-1] real;
                     // Starting and ending pos for this chunk
-                    var st = (i*valSize*read_count) + initialStart;
+                    var st = (i*valSize) + initialStart;
                     var endPos = st + read_count*valSize;
                     var r = fin.reader(kind=ionative, locking=false, start=st, end=endPos);
                     r.read(temp);
                     // Copy over the chunk to the correct position in buffer
                     for n in 0..read_count-1 {
-                        buffer(n+i) = temp(n);
+                        buffer[n+i] = temp[n];
                     }
                     r.close();
                 }
             }
             else {
                 valSize = 4;
-                forall i in 0..count-1 by BUF_LEN {
-                    var read_count = min(BUF_LEN, count-i);
+                forall n in 0..count-1 by BUF_LEN {
+                    var read_count = min(BUF_LEN, count-n);
                     var temp : [0..read_count-1] real(32);
-                    var st = (i*valSize*read_count) + initialStart;
+                    var st = (n*valSize) + initialStart;
                     var endPos = st + read_count*valSize;
                     var r = fin.reader(kind=ionative, locking=false, start=st, end=endPos);
                     r.read(temp);
-                    for n in 0..read_count-1 {
-                        buffer(n+i) = temp(n);
+                    for i in 0..read_count-1 {
+                        buffer[n+i] = temp[i];
                     }
                     r.close();
                 }   
             }
             // Update startPos
-            startPos = (count*valSize) + startPos;
+            startPos += (count*valSize);
         }
         catch {
             writeln("ERROR: Failed to read indices from file");
