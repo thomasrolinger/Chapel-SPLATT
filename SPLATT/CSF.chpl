@@ -373,7 +373,6 @@ module CSF {
     {
         var nmodes : int = tt.nmodes;
         tt_sort(tt, ct.dim_perm[0], ct.dim_perm);
-        writeln("dim_perm : ", ct.dim_perm);
 
         ct.ntiles = 1;
         ct.tile_dims = 1;

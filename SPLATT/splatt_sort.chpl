@@ -122,7 +122,6 @@ module splatt_sort {
 
         var b = new Barrier(numThreads_g);
 
-        writeln("Before coforall in counting_sort");
         // For each thread, give it a portion of the mode to sort
         coforall tid in 0..numThreads_g-1 {
             /*
@@ -137,19 +136,14 @@ module splatt_sort {
             var j_per_thread: int = (tt.nnz + numThreads_g - 1) / numThreads_g;
             var jbegin : int = min(j_per_thread*tid, tt.nnz);
             var jend : int = min(jbegin + j_per_thread, tt.nnz);
-            writeln("j_per_thread: ", j_per_thread);
-            writeln("jbegin: ", jbegin);
-            writeln("jend: ", jend);
 
             // count
             for j in jbegin..jend-1 {
                 var idx: int = tt.ind[m,j];
-                writeln("[", j, "] idx = ", idx);
                 histogram[idx] += 1;
             }
             
             b.barrier();
-            exit(-1);
             // prefix sum
             for j in (tid*nslices)+1..((tid+1)*nslices)-1 {
                 var transpose_j : int = p_transpose_idx(j, numThreads_g, nslices);
@@ -199,9 +193,7 @@ module splatt_sort {
                 }
             }
         } /* coforall end */
-        //writeln("histogram_array: ", histogram_array);
            
-        //writeln("End coforall in counting_sort");
         for i in 0..tt.nmodes-1 {
             if i != m {
                 tt.ind[i,0..tt.nnz-1] = new_ind[i,0..tt.nnz-1];
@@ -215,17 +207,12 @@ module splatt_sort {
         // For 3/4D we can use quicksort on only the leftover modes
         var cmplt_ptr = c_ptrTo(cmplt);
         if tt.nmodes == 3 {
-            //writeln("Before forall for quicksort2, nslices = ", nslices);
             for i in 0..nslices-1 {
-                //writeln("Calling quicksort with start= ", histogram_array[i], " and end= ", histogram_array[i+1]);
                 p_tt_quicksort2(tt, cmplt_ptr+1, histogram_array[i], histogram_array[i+1]);
-                //writeln("  finished quicksort");
                 for j in histogram_array[i]..histogram_array[i+1]-1 {
                     tt.ind[m,j] = i;
                 }
-                writeln("Finished with loop iter ", i);
             }
-            writeln("End forall for quicksort2");
         }
         else if tt.nmodes == 4 {
             forall i in 0..nslices-1 {
@@ -253,7 +240,6 @@ module splatt_sort {
             c_memmove(cmplt_ptr+1, cmplt_ptr, (tt.nmodes-1)*8);
             cmplt[0] = saved;
         }
-        writeln("End of counting sort");
     }
 
     /*########################################################################
@@ -282,7 +268,6 @@ module splatt_sort {
     ########################################################################*/
     private proc p_tt_quicksort2(tt : sptensor_t, cmplt, start : int, end : int)
     {
-        writeln("** Entered quicksort **");
         var vmid : real;
         var imid : [0..1] int;
 
@@ -351,7 +336,6 @@ module splatt_sort {
                 p_tt_quicksort2(tt, cmplt, i, end);
             }
         }
-        writeln("** Exit quicksort **");
     }
 
     /*########################################################################
