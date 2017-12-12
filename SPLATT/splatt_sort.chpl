@@ -207,7 +207,7 @@ module splatt_sort {
         // For 3/4D we can use quicksort on only the leftover modes
         var cmplt_ptr = c_ptrTo(cmplt);
         if tt.nmodes == 3 {
-            for i in 0..nslices-1 {
+            forall i in 0..nslices-1 {
                 p_tt_quicksort2(tt, cmplt_ptr+1, histogram_array[i], histogram_array[i+1]);
                 for j in histogram_array[i]..histogram_array[i+1]-1 {
                     tt.ind[m,j] = i;
