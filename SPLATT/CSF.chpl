@@ -12,6 +12,7 @@ module CSF {
     use sptensor;
     use Args;
     use Sort;
+    use splatt_sort;
 
     /*****************************
     *
@@ -56,7 +57,7 @@ module CSF {
             CSF. NOTE: do not use directly; use 'csf_mode_to_depth' instead */
         var dim_iperm : [NUM_MODES_d] int;
         /** Which tiling scheme this tensor is stored as */
-        var which_tile : splatt_tile_type;
+        var which_tile : int;
         /** How many tiles there are */
         var ntiles : int;
         /** How many modes of the tensor (i.e. CSF levels) are tiled.
@@ -91,9 +92,6 @@ module CSF {
     {
         SPLATT_NOTILE,
         SPLATT_DENSETILE,
-        /* DEPRECATED - pending CSF implementations */
-        SPLATT_SYNCTILE,
-        SPLATT_COOPTILE
     }; 
 
     /*****************************
@@ -217,12 +215,12 @@ module CSF {
         csf_find_mode_order(tt.dims, tt.nmodes, mode_type, mode, ct.dim_perm);  
 
         // Tiling option
-        ct.which_tile = splatt_opts.tiling : splatt_tile_type;
+        ct.which_tile = splatt_opts.tiling;
         select(ct.which_tile) {
-            when splatt_tile_type.SPLATT_NOTILE {
+            when 0 {
                 p_csf_alloc_untiled(ct, tt);
             }
-            when splatt_tile_type.SPLATT_DENSETILE {
+            when 1 {
                 p_csf_alloc_densetile(ct, tt, splatt_opts);
             }
             otherwise {
@@ -374,7 +372,8 @@ module CSF {
     proc p_csf_alloc_untiled(ct : splatt_csf, tt : sptensor_t)
     {
         var nmodes : int = tt.nmodes;
-        //tt_sort(tt, ct.dim_perm[0], ct.dim_perm);
+        tt_sort(tt, ct.dim_perm[0], ct.dim_perm);
+        writeln("dim_perm : ", ct.dim_perm);
 
         ct.ntiles = 1;
         ct.tile_dims = 1;

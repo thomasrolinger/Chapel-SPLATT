@@ -132,6 +132,12 @@ module splatt_IO {
         // Read in tensor data into tt
         tt.dims = dims;
         tt.nmodes = nmodes;
+        if nmodes == 3 {
+            tt.tensorType = tt_type.SPLATT_3MODE;
+        }
+        else {
+            tt.tensorType = tt_type.SPLATT_NMODE;
+        }   
         tt.nnz = nnz;
         for m in 0..nmodes-1 {
             p_fill_binary_idx(tt.ind[m,0..nnz-1], nnz, header, fin, startPos);

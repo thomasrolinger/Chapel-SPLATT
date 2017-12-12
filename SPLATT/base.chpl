@@ -22,10 +22,16 @@ module Base {
     const DEFAULT_WRITE: int = 1;
     const DEFAULT_TILE: int = 0;
     const DEFAULT_NUM_THREADS: int = here.numPUs();
+    const MIN_QUICKSORT_SIZE : int = 8;
+    const SMALL_SORT_SIZE : int = 1000;
     const DEFAULT_NNZ: int = 1000;  /** Default number of non-zeros. Used when creating
                                         the domains below. */
     const SPLATT_IDX_TYPEWIDTH: int = 64;
     const SPLATT_VAL_TYPEWIDTH: int = 64;
+
+    // Global "numThreads" so we don't have to pass it around all the time.
+    // We set this once we parse the args
+    var numThreads_g : int;
 
     /*****************************
     *

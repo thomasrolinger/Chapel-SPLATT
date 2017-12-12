@@ -112,6 +112,8 @@ module Args {
             tiling = tile;
             rndSeed = seed;
             numThreads = threads;
+            // Set global numThreads
+            numThreads_g = threads;
         }
     }
 }
