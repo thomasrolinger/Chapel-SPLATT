@@ -13,6 +13,27 @@ module CSF {
     use Args;
     use Sort;
     use splatt_sort;
+    use Assert;
+
+    /*****************************
+    *
+    *   CSF sub-tree class
+    *
+    ******************************/
+    class csf_subtree {
+        var subtree_d : domain(1) = 0..DEFAULT_NNZ-1;
+        var subtree : [subtree_d] int;
+    }
+
+    /*****************************
+    *
+    *   CSF fiber IDS class
+    *
+    ******************************/
+    class csf_fiber_ids {
+        var fiber_ids_d : domain(1) = 0..DEFAULT_NNZ-1;
+        var fiber_ids : [fiber_ids_d] int;
+    }
 
     /*****************************
     *
@@ -25,11 +46,22 @@ module CSF {
         /** The pointer structure for each sub-tree. fptr[f]
             marks the start of the children of node 'f'. This
             structure is a generalization of the 'rowptr' array
-            used in CSR matrices */
-        var fptr : [NUM_MODES_d] int;
+            used in CSR matrices
+            *** Chapel note: In C, this would be an array of
+                int ptrs. At first, I would just make this a
+                2D array then. However, each "row" is of a
+                different size and we can't do that in Chapel.
+                So we need to make fptr a 1D array of objects
+                that represent whatever the row is. We'll call
+                these objects csf_subtrees (see above).
+         */
+        var fptr : [NUM_MODES_d] csf_subtree;
         /** The index of each node. These map nodes back to the
-            original tensor nonzeros */
-        var fids : [NUM_MODES_d] int;
+            original tensor nonzeros 
+            *** Chapel note: Just like above, we need to use
+                objects to correctly store this
+        */
+        var fids : [NUM_MODES_d] csf_fiber_ids;
         /** The actual nonzero values. This array is of length
             nfibs[nmodes-1]. Since we do not know this size at
             compile time, we will resize the domain of this
@@ -376,7 +408,44 @@ module CSF {
 
         ct.ntiles = 1;
         ct.tile_dims = 1;
-        return;
+
+        // Resize pt array/domain
+        NUM_TILES_d = 0..ct.ntiles-1;
+
+        ct.pt[0] = new csf_sparsity();
+        var pt = ct.pt[0];
+
+        // last row of fptr is just nonzero inds
+        pt.nfibs[nmodes-1] = ct.nnz;
+        // Resize CSF_SPARSITY_VALS_d to be size nfibs[nmodes-1]
+        CSF_SPARSITY_VALS_d = 0..pt.nfibs[nmodes-1];
+        // Create fiber_ids and subtrees for each mode
+        for m in 0..nmodes-1 {
+            pt.fids[m] = new csf_fiber_ids();
+            pt.fptr[m] = new csf_subtree();
+        }
+
+        // Last mode's fiber ids size is nnz
+        pt.fids[nmodes-1].fiber_ids_d = 0..ct.nnz-1;
+
+        // Get pointers to arrays so we can do some memcpys
+        var fidsPtr = c_ptrTo(pt.fids[nmodes-1].fiber_ids);
+        var indPtr = c_ptrTo(tt.ind[ct.dim_perm[nmodes-1],0..ct.nnz-1]);
+        var ptValsPtr = c_ptrTo(pt.vals);
+        var ttValsPtr = c_ptrTo(tt.vals);
+        c_memcpy(fidsPtr, indPtr, ct.nnz*8);
+        c_memcpy(ptValsPtr, ttValsPtr, ct.nnz*8);
+
+        // setup a basic tile ptr for one tile
+        var nnz_ptr : [0..1] int;
+        nnz_ptr[0] = 0;
+        nnz_ptr[1] = tt.nnz;
+
+        // create fptr entries for the rest of the modes, working down from roots.
+        // Skip the bottom level (nnz)
+        for m in 0..nmodes-2 {
+            p_mk_fptr(ct, tt, 0, nnz_ptr, m);
+        }
     }
 
     /*########################################################################
@@ -393,4 +462,161 @@ module CSF {
     {
         return;
     }
+
+    /*########################################################################
+    #   Descriptipn:    Construct the sparsity structure of any mode but the
+    #                   last. The first (root) is handled by p_mk_outerptr
+    #                   and the first is simply a copy of the nonzeros
+    #
+    #   Parameters:     ct (splatt_csf):        The CSF tensor to construct
+    #                   tt (sptensor_t):        The sparse tensor (sorted)
+    #                   tile_id (int):          The ID of the tile to make
+    #                   nnztile_ptr (int []):   A pointer into 'tt' that marks
+    #                                           the start of each tile.
+    #                   mode (int):             The mode we are making        
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_mk_fptr(ct : splatt_csf, tt : sptensor_t, tile_id : int, nnztile_ptr, mode : int)
+    {   
+        assert(mode < ct.nmodes);
+
+        var nnzstart : int = nnztile_ptr[tile_id];
+        var nnzend : int = nnztile_ptr[tile_id+1];
+        var nnz : int = nnzend - nnzstart;        
+        
+        // outer mode is easy; just look at outer indices
+        if mode == 0 {
+            p_mk_outerptr(ct, tt, tile_id, nnztile_ptr);
+            return;
+        }
+
+        // the mode after accounting for dim_perm
+        // Get a c ptr to it to make this easier
+        var indPtr = c_ptrTo(tt.ind[ct.dim_perm[mode],0..ct.nnz-1]);
+        var ttind = indPtr + nnzstart;       
+ 
+        // grab sparsity pattern
+        var pt = ct.pt[tile_id];
+
+        // we will edit this to point to the new fiber indx instead
+        // of nnz   
+        var fprev = pt.fptr[mode-1].subtree;
+
+        // First count nfibers
+        var nfibs : int = 0;
+        // For each 'slice' in the previous dimension
+        for s in 0..pt.nfibs[mode-1]-1 {
+            nfibs += 1; // one by default per slice
+            // count fibers in current hyperplane
+            for f in fprev[s]+1..fprev[s+1]-1 {
+                if ttind[f] != ttind[f-1] {
+                    nfibs += 1;
+                }
+            }
+            
+        }
+        pt.nfibs[mode] = nfibs;
+
+        // Resize this mode's subtree size and fiber ids size
+        pt.fptr[mode].subtree_d = 0..(nfibs+1)-1;
+        pt.fids[mode].fiber_ids_d = 0..nfibs-1;
+
+        var fpPtr = c_ptrTo(pt.fptr[mode].subtree);
+        var fiPtr = c_ptrTo(pt.fids[mode].fiber_ids);
+        fpPtr[0] = 0;
+
+        // now fill in fiber info
+        var nfound : int = 0;
+        for s in 0..pt.nfibs[mode-1]-1 {
+            var start : int = fprev[s]+1;
+            var end : int = fprev[s+1];
+            // mark start of subtree
+            fprev[s] = nfound;
+            fiPtr[nfound] = ttind[start-1];
+            fpPtr[nfound] = start-1;
+            nfound += 1;
+            // mark fibers in current hyperplane
+            for f in start..end-1 {
+                if ttind[f] != ttind[f-1] {
+                    fiPtr[nfound] = ttind[f];
+                    fpPtr[nfound] = f;
+                    nfound += 1;
+                }
+            }
+        }
+        // mark end of last hyperplane
+        fprev[pt.nfibs[mode-1]] = nfibs;
+        fpPtr[nfibs] = nnz;
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Construct the sparsity structure of the outer-mode
+    #                   of a CSF tensor
+    #
+    #   Parameters:     ct (splatt_csf):        The CSF tensor to construct
+    #                   tt (sptensor_t):        The sparse tensor (sorted)
+    #                   tile_id (int):          The ID of the tile to make
+    #                   nnztile_ptr (int []):   A pointer into 'tt' that marks
+    #                                           the start of each tile.
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_mk_outerptr(ct : splatt_csf, tt : sptensor_t, tile_id : int, nnztile_ptr)
+    {
+        var nnzstart : int = nnztile_ptr[tile_id];
+        var nnzend : int = nnztile_ptr[tile_id+1];
+        var nnz : int = nnzend - nnzstart;
+        assert(nnzstart < nnzend);
+    
+        // the mode after accounting for dim_perm
+        // Get a c ptr to it to make this easier
+        var indPtr = c_ptrTo(tt.ind[ct.dim_perm[0],0..ct.nnz-1]);
+        var ttind = indPtr + nnzstart;
+
+        // count fibers
+        var nfibs : int = 1;
+        for x in 1..nnz-1 {
+            assert(ttind[x-1] <= ttind[x]);
+            if ttind[x] != ttind[x-1] {
+                nfibs += 1;
+            }
+        }
+        ct.pt[tile_id].nfibs[0] = nfibs;
+        assert(nfibs <= ct.dims[ct.dim_perm[0]]);
+
+        // grab sparsity pattern
+        var pt = ct.pt[tile_id];
+        
+        // Resize this mode's (0) subtree size and fiber ids size
+        pt.fptr[0].subtree_d = 0..(nfibs+1)-1;
+        pt.fids[0].fiber_ids_d = 0..nfibs-1;
+
+        var fpPtr = c_ptrTo(pt.fptr[0].subtree);
+        var fiPtr = c_ptrTo(pt.fids[0].fiber_ids);
+        if ct.ntiles <= 1 {
+            fiPtr = nil;
+        }
+        fpPtr[0] = 0;
+        if fiPtr != nil {
+            fiPtr[0] = ttind[0];
+        }
+
+        var nfound : int = 1;
+        for n in 1..nnz-1 {
+            // check for end of outer index
+            if ttind[n] != ttind[n-1] {
+                if fiPtr != nil {
+                    fiPtr[nfound] = ttind[n];
+                }
+                fpPtr[nfound] = n;
+                nfound += 1;
+            }
+        }
+        fpPtr[nfibs] = nnz;
+    }
 }
+
+
+
+
