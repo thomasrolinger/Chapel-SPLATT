@@ -8,6 +8,7 @@
 */
 
 module Util {
+    use IO.FormattedIO;
     /* 
         Takes a value (number of bytes) and produces a printable
         string that represents the size (i.e. B, KB, MB, etc.)
@@ -22,8 +23,7 @@ module Util {
             size /= 1024;
             suff += 1;
         }
-        var ret : string = size:string;
-        ret += suffix[suff];
+        var ret : string = "%0.2dr%s".format(size, suffix[suff]);
         return ret;
     }
     

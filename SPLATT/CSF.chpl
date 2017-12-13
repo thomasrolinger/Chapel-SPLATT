@@ -157,7 +157,6 @@ module CSF {
                 p_mk_csf(ret[0], tt, csf_mode_type.CSF_SORTED_SMALLFIRST, 0, args);
             }
             when "two" {
-                var ret : [0..1] splatt_csf;
                 ret[0] = new splatt_csf();
                 ret[1] = new splatt_csf();
                 p_mk_csf(ret[0], tt, csf_mode_type.CSF_SORTED_SMALLFIRST, 0, args);
@@ -215,6 +214,70 @@ module CSF {
                 writeln("ERROR: csf_mode_type ", which, " not recognized");
             }
         }
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Calculate the CSF storage
+    #
+    #   Parameters:     tensors (splatt_csf[]): The tensor in CSF format
+    #                   opts (cpd_cmd_args):    Arguments to the program
+    #
+    #   Return:         None
+    ########################################################################*/
+    proc csf_storage(tensors, opts) : int
+    {
+        var ntensors : int = 0;
+        select(opts.numCSF) {
+            when "one" {
+                ntensors = 1;
+            }
+            when "two" {
+                ntensors = 2;
+            }
+            when "all" {
+                ntensors = tensors[0].nmodes;
+            }
+        }
+
+        var bytes : int = 0;
+        for m in 0..ntensors-1 {
+            var ct = tensors[m];
+            bytes += ct.nnz * 8; // vals (real)
+            bytes += ct.nnz * 8; // fids[nmodes] (int)
+            /*
+                In SPLATT, the arrays within pt are statically
+                allocated to hold MAX_NMODES int pointers. There
+                are 3 such arrays, so that;s (MAX_NMODES*8)*3. There's
+                also a single int pointer for the values array. Assuming
+                that MAX_NMODES is 8, then that's 200 bytes. In Chapel,
+                we resize our domains once we know how many modes we have.
+                For simplicity, I'll just assume the same as SPLATT.
+                However, this automic resizing of arrays by adjusting the
+                domains can be highlighted as a benefit of Chapel when it
+                comes to memory consumption. But in this case, where the
+                difference between the "true" array size and the max default
+                is very small, so it isn't worth being strict about reporting
+                the actual size.
+            */
+            bytes += ct.ntiles * 200;
+            for t in 0..ct.ntiles-1 {
+                var pt = ct.pt[t];
+                for n in 0..(ct.nmodes-1)-1 {
+                    bytes += (pt.nfibs[n]+1) * 8; // fptr
+                    /*
+                        In C, we would have set fids[n] to NULL if n=0 and
+                        ntiles <= 1. However, this does not seem to work well
+                        when mixing C and Chapel. So to mark that a specific
+                        fids array is NULL, I've reduced its domain to a single
+                        element and set that element's value to -1.
+                    */
+                    if pt.fids[n].fiber_ids[0] != -1 {
+                        bytes += pt.nfibs[n] * 8; // fids
+                    }
+                }
+            }
+        }
+        return bytes;
     }
 
     /*****************************
@@ -594,11 +657,19 @@ module CSF {
 
         var fpPtr = c_ptrTo(pt.fptr[0].subtree);
         var fiPtr = c_ptrTo(pt.fids[0].fiber_ids);
+        /*
+            Here, we want to set fiPtr to NULL if ntiles <= 1.
+            However, this doesn't seem to work nicely once we go
+            back to Chapel and try to check for nil. So I will do
+            a hack: reduce the domain size to 1 and set the only
+            element in fiPtr to be -1.
+        */
         if ct.ntiles <= 1 {
-            fiPtr = nil;
+            pt.fids[0].fiber_ids_d = 0..0;
+            pt.fids[0].fiber_ids[0] = -1;
         }
         fpPtr[0] = 0;
-        if fiPtr != nil {
+        if fiPtr[0] != -1 {
             fiPtr[0] = ttind[0];
         }
 
@@ -606,7 +677,7 @@ module CSF {
         for n in 1..nnz-1 {
             // check for end of outer index
             if ttind[n] != ttind[n-1] {
-                if fiPtr != nil {
+                if fiPtr[0] != -1 {
                     fiPtr[nfound] = ttind[n];
                 }
                 fpPtr[nfound] = n;

@@ -41,15 +41,11 @@ proc main(args: [] string)
     // all : all elements in csf
     var csf = csf_alloc(tt, cpdArgs);
 
-    /*writeln("num modes = ", tt.nmodes);
-    for i in 0..9 {
-        write("The #", i+1, " nnz is at (");
-        for m in 0..tt.nmodes-1 {
-            write(tt.ind[m,i], ",");
-        }
-        writeln(")");
-    }
-    for i in 0..9 {
-        writeln("The #", i+1, " value is: ", tt.vals[i]);
-    }*/
+    var nmodes : int = tt.nmodes;
+
+    // Now that the CSF is built, we no longer need the sptensor tt
+    delete tt;
+    
+    // Print CPD stats
+    cpd_stats(csf, cpdArgs);
 }

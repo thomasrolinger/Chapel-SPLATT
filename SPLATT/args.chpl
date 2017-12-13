@@ -22,7 +22,7 @@ module Args {
     */
     config var iters: int = DEFAULT_ITS;
     config var tol: real = DEFAULT_TOL;
-    config var reg: int = DEFAULT_REG;
+    config var reg: real = DEFAULT_REG;
     config var rank: int = DEFAULT_NFACTORS;
     config var csf: string = DEFAULT_CSF;
     config var tile: int = DEFAULT_TILE;
@@ -68,7 +68,7 @@ module Args {
     class cpd_cmd_args {
         var numIters : int;
         var tolerance : real;
-        var regularization : int;
+        var regularization : real;
         var decompRank : int;
         var numCSF : string;
         var tiling : int;

@@ -18,7 +18,7 @@ module Base {
     const DEFAULT_NFACTORS: int  = 10;
     const DEFAULT_ITS: int = 50;
     const DEFAULT_CSF: string = "two";
-    const DEFAULT_REG: int = 0;
+    const DEFAULT_REG: real = 0.0;
     const DEFAULT_WRITE: int = 1;
     const DEFAULT_TILE: int = 0;
     const DEFAULT_NUM_THREADS: int = here.numPUs();
