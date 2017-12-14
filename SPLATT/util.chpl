@@ -33,15 +33,35 @@ module Util {
         Given a factor matrix, generate random values for its
         data. Use the global random stream.
     */
-    proc mat_rand(mat : factor_matrix)
+    proc mat_rand(mat : dense_matrix, m)
     {
-        forall (i,j) in mat.vals.domain {
+        /*forall (i,j) in mat.vals.domain {
             var v : real = 3.0 * (randStream_g.getNext():real / RAND_MAX:real);
             var v2 : int = randStream_g.getNext();
             if v2 % 2 == 0 {
                 v *= -1;
             }
             mat.vals(i,j) = v;
+        }*/
+        //$$$$ TEMPORARY $$$$$$
+        /*
+            Since Chapel and C have different RNGs and I need to have
+            the same values in the factor matrices while testing this
+            code, we will read in the matrix values from a file for now. 
+        */
+        var fin : file;
+        if m == 0 {
+            fin = open("factMats_A.txt", iomode.r);
         }
+        else if m == 1 {
+            fin = open("factMats_B.txt", iomode.r);
+        }
+        else {
+            fin = open("factMats_C.txt", iomode.r);
+        }
+        var reader = fin.reader();
+        reader.read(mat.vals);
+        reader.close();        
+        
     }
 }
