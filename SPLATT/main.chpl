@@ -12,12 +12,17 @@ use sptensor;
 use Args;
 use Stats;
 use CSF;
+use Kruskal;
+use CPD;
 
 proc main(args: [] string)
 {
     // Parse command line arguments
     var cpdArgs : cpd_cmd_args = new cpd_cmd_args();
     cpdArgs.parseArgs(args);
+
+    // Seed rng
+    randStream_g = new RandomStream(int(32), cpdArgs.rndSeed);
     
     // Print a header
     writeln("****************************************************************");
@@ -48,4 +53,13 @@ proc main(args: [] string)
     
     // Print CPD stats
     cpd_stats(csf, cpdArgs);
+
+    // Create Kruskal tensors (holds info/output of CPD).
+    var factored : splatt_kruskal = new splatt_kruskal();
+
+    // Do the factorization
+    var ret : int = splatt_cpd_als(csf, cpdArgs, factored);
+    if ret != SPLATT_SUCCESS {
+        writeln("ERROR: splatt_cpd_als returned ", ret, ". Aborting");
+    }
 }

@@ -108,6 +108,8 @@ module Args {
             tolerance = tol;
             regularization = reg;
             decompRank = rank;
+            // Resize LAMBDA_d domain
+            LAMBDA_d = 0..decompRank-1;
             numCSF = csf;
             tiling = tile;
             rndSeed = seed;

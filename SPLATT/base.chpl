@@ -8,6 +8,8 @@
 */
 
 module Base {
+    use Random;
+
     /*****************************
     *
     *   Defaults
@@ -28,10 +30,15 @@ module Base {
                                         the domains below. */
     const SPLATT_IDX_TYPEWIDTH: int = 64;
     const SPLATT_VAL_TYPEWIDTH: int = 64;
+    const SPLATT_SUCCESS: int = 1;
+    const RAND_MAX: int = 2147483647;
 
     // Global "numThreads" so we don't have to pass it around all the time.
     // We set this once we parse the args
     var numThreads_g : int;
+
+    // Global random stream to use. We will seed it once we parse command line args
+    var randStream_g : RandomStream(int(32));
 
     /*****************************
     *
@@ -47,4 +54,5 @@ module Base {
                                                                     is not known until runtime. We'll resize this then */
     var NUM_TILES_d : domain(1) = 0..MAX_NMODES-1;              /** Number of tiles in CSF; not known until runtime so we'll
                                                                     resize this later. */
+    var LAMBDA_d : domain(1) = 0..DEFAULT_NFACTORS-1;
 }
