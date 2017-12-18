@@ -324,12 +324,12 @@ module CSF {
     {
         var norm : real = 0.0;
         var nmodes = tensor[0].nmodes;
-        for t in 0..tensor[0].ntiles-1 {
-            var vals = tensor[0].pt[t].vals;
-            var nnz = tensor[0].pt[t].nfibs[nmodes-1];
-            for n in 0..nnz-1 {
-                norm += vals[n] * vals[n];
-            }
+        // Ignoring tiling for now
+        var vals = tensor[0].pt[0].vals;
+        var nnz = tensor[0].pt[0].nfibs[nmodes-1];
+        var t: Timer;
+        forall n in 0..nnz-1 with (+ reduce norm) {
+            norm += vals[n] * vals[n];
         }
         return norm;
     }
