@@ -312,6 +312,28 @@ module CSF {
         return csf.dim_perm[level];
     }
 
+    /*########################################################################
+    #   Descriptipn:    Compute the squared Frobenius norm of a tensor. This 
+    #                   is the sum-of-squares of all nonzeros
+    #
+    #   Parameters:     tensor (splatt_csf[]):  The tensor to operate on
+    #
+    #   Return:         real: The norm
+    ########################################################################*/
+    proc csf_frobsq(tensor) : real
+    {
+        var norm : real = 0.0;
+        var nmodes = tensor[0].nmodes;
+        for t in 0..tensor[0].ntiles-1 {
+            var vals = tensor[0].pt[t].vals;
+            var nnz = tensor[0].pt[t].nfibs[nmodes-1];
+            for n in 0..nnz-1 {
+                norm += vals[n] * vals[n];
+            }
+        }
+        return norm;
+    }
+
     /*****************************
     *
     *   Private Functions

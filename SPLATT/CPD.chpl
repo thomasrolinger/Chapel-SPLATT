@@ -14,6 +14,7 @@ module CPD {
     use Kruskal;
     use Matrices;
     use MTTKRP;
+    use IO.FormattedIO;
 
    /*****************************
     *
@@ -117,6 +118,12 @@ module CPD {
 
         // MTTKRP workspace
         var mttkrp_ws: splatt_mttkrp_ws = splatt_mttkrp_alloc_ws(tensors, nfactors, args);
+
+        // Compute input tensor norm
+        var ttnormsq : real = csf_frobsq(tensors);
+        //writeln("ttnormsq: ", ttnormsq);
+        writef("ttnormsq = %dr\n", ttnormsq);
+        
 
         return 0.0;
     }

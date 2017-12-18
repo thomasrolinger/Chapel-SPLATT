@@ -185,7 +185,7 @@ module splatt_sort {
                 var idx : int = tt.ind[m,j];
                 histogram[idx] -= 1;
                 var offset : int = histogram[idx];
-                new_vals[offset] = tt.vals[idx];
+                new_vals[offset] = tt.vals[j];
                 for mode in 0..tt.nmodes-1 {
                     if mode != m {
                         new_ind[mode,offset] = tt.ind[mode,j];
@@ -193,14 +193,14 @@ module splatt_sort {
                 }
             }
         } /* coforall end */
-           
+ 
         for i in 0..tt.nmodes-1 {
             if i != m {
                 tt.ind[i,0..tt.nnz-1] = new_ind[i,0..tt.nnz-1];
             }
         }
-        tt.vals = new_vals;
 
+        tt.vals = new_vals;
         histogram_array[nslices] = tt.nnz;
 
         //writeln("Before doing quicksort on left over modes");
