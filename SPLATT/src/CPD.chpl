@@ -15,6 +15,7 @@ module CPD {
     use Matrices;
     use MTTKRP;
     use IO.FormattedIO;
+    use Time;
 
    /*****************************
     *
@@ -121,9 +122,31 @@ module CPD {
 
         // Compute input tensor norm
         var ttnormsq : real = csf_frobsq(tensors);
-        //writeln("ttnormsq: ", ttnormsq);
-        writef("ttnormsq = %dr\n", ttnormsq);
+
+        // Separate timer for the iterations
+        var itertime : Timer;
         
+        // Start CPD timer
+        timers_g.timers["CPD"].start();
+
+        // Perform iterations
+        var niters = args.numIters;
+        for it in 0..niters-1 {
+            itertime.clear();
+            itertime.start();
+            for m in 0..nmodes-1 {
+                mats[nmodes].I = tensors[0].dims[m];
+                m1.I = mats[m].I;
+
+                // M1 = X * (C o B)
+                timers_g.timers["MTTKRP"].start();
+                mttkrp_csf(tensors, mats, m, mttkrp_ws, args);
+                timers_g.timers["MTTKRP"].stop();
+            }
+            itertime.stop();
+        }
+
+        timers_g.timers["CPD"].stop();
 
         return 0.0;
     }

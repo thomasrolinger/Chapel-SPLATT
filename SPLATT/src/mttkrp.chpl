@@ -141,6 +141,38 @@ module MTTKRP {
         return ws;
     }
 
+    /*########################################################################
+    #   Descriptipn:    Matricized Tensor Times Khatri-Rao Product (MTTKRP)
+    #                   with a CSF tensor. This is the primary computation
+    #                   involved in CPD. Output is written to mats[nmodes].
+    #
+    #   Parameters:     tensors (splatt_csf[]): Tensor to factor in CSF
+    #                   mats (dense_matrix[]):  Input/output matrices
+    #                   mode (int):             Which mode we are computing for
+    #                   ws (splatt_mttkrp_ws):  MTTKRP workspace
+    #                   opts (cpd_cmd_args):    Arguments.
+    #
+    #   Return:         None
+    ########################################################################*/
+    proc mttkrp_csf(tensors, mats, mode : int, ws : splatt_mttkrp_ws, opts)
+    {
+        // Mutex pool???
+        
+        var nmodes = tensors[0].nmodes;
+
+        /* Clear output matrix */
+        var M = mats[nmodes];
+        M.I = tensors[0].dims[mode];
+        M.vals = 0;
+
+        /* Choose which MTTKRP function to use */
+        var which_csf = ws.mode_csf_map[mode];
+        var outdepth = csf_mode_to_depth(tensors[which_csf], mode);
+        if outdepth == 0 {
+            /* root */
+        }
+    }
+
     /*****************************
     *
     *   Private Functions
