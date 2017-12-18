@@ -13,6 +13,7 @@ module CPD {
     use Args;
     use Kruskal;
     use Matrices;
+    use MTTKRP;
 
    /*****************************
     *
@@ -108,6 +109,14 @@ module CPD {
             // compute A^T*A
             mat_aTa(mats[m], aTa[m]);
         }
+        aTa[nmodes] = new dense_matrix();
+        aTa[nmodes].matrix_domain = {0..nfactors-1, 0..nfactors-1};
+        aTa[nmodes].I = nfactors;
+        aTa[nmodes].J = nfactors;
+        aTa[nmodes].vals = 0;
+
+        // MTTKRP workspace
+        var mttkrp_ws: splatt_mttkrp_ws = splatt_mttkrp_alloc_ws(tensors, nfactors, args);
 
         return 0.0;
     }

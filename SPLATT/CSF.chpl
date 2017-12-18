@@ -280,6 +280,38 @@ module CSF {
         return bytes;
     }
 
+    /*########################################################################
+    #   Descriptipn:    Map a mode (in the input system) to the tree level that
+    #                   it is found. This is equivalent to the inverse dim_perm.
+    #
+    #   Parameters:     csf (splatt_csf):   The CSF tensor
+    #                   mode (int):         The mode (relative to the input)
+    #                                       to look up.
+    #
+    #   Return:         The level of the tree that mode is mapped to
+    ########################################################################*/ 
+    proc csf_mode_to_depth(csf: splatt_csf, mode : int): int
+    {
+        assert(mode < csf.nmodes);
+        return csf.dim_iperm[mode];
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Map a level of the CSF tree (zero-indexed, measured
+    #                   from root) to the actual mode in the tensor, respecting
+    #                   any mode permutation.
+    #
+    #   Parameters:     csf (splatt_csf):   The CSF tensor
+    #                   level (int):        The level in the tree
+    #
+    #   Return:         The actual mode in the tensor
+    ########################################################################*/
+    proc csf_depth_to_mode(csf: splatt_csf, level : int): int
+    {
+        assert(level < csf.nmodes);
+        return csf.dim_perm[level];
+    }
+
     /*****************************
     *
     *   Private Functions
@@ -308,7 +340,8 @@ module CSF {
 
         // Get the indices in order
         csf_find_mode_order(tt.dims, tt.nmodes, mode_type, mode, ct.dim_perm);  
-
+        p_fill_dim_iperm(ct);
+        
         // Tiling option
         ct.which_tile = splatt_opts.tiling;
         select(ct.which_tile) {
@@ -321,6 +354,20 @@ module CSF {
             otherwise {
                 writeln("ERROR: Tiling option not supported");
             }
+        }
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Construct dim_iperm, which is the inverse of dim_perm
+    #
+    #   Parameters:     ct (splatt_csf):    The CSF tensor
+    #
+    #   Return:         None
+    ########################################################################*/
+    proc p_fill_dim_iperm(ct: splatt_csf)
+    {
+        for level in 0..ct.nmodes-1 {
+            ct.dim_iperm[ct.dim_perm[level]] = level;
         }
     }
 

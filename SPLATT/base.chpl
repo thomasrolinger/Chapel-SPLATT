@@ -32,6 +32,7 @@ module Base {
     const SPLATT_VAL_TYPEWIDTH: int = 64;
     const SPLATT_SUCCESS: int = 1;
     const RAND_MAX: int = 2147483647;
+    const DEFAULT_PRIV_THRESH : real = 0.02; 
 
     // Global "numThreads" so we don't have to pass it around all the time.
     // We set this once we parse the args
