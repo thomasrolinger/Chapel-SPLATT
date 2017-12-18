@@ -14,6 +14,7 @@ module CSF {
     use Sort;
     use splatt_sort;
     use Assert;
+    use MTTKRP;
 
     /*****************************
     *
@@ -334,12 +335,77 @@ module CSF {
         return norm;
     }
 
+    /*########################################################################
+    #   Descriptipn:    Split the root nodes of a CSF tensor into 'nparts'
+    #                   partitions.
+    #
+    #   Parameters:     csf (splatt_csf):   The CSF tensor to partition
+    #                   tile_id (int):      Tile ID
+    #                   nparts (int):       Number of partitions
+    #
+    #   Return:         tree_part object (array of length nparts+1).
+    ########################################################################*/
+    proc csf_partition_1d(csf, tile_id, nparts)
+    {
+        var nslices = csf.pt[tile_id].nfibs[0];
+        var weights : [0..nslices-1] int;
+        for i in 0..nslices-1 {
+            writeln("csf.pt[", tile_id, "].fptr[0]:");
+            for e in csf.pt[tile_id].fptr[0].subtree {
+                writeln(e);
+            }
+            exit(-1);
+            weights[i] = p_csf_count_nnz(csf.pt[tile_id].fptr, csf.nmodes, 0, i);
+            writeln(weights[i]);
+        }
+        //exit(-1);
+        return new tree_part();
+    }
+
     /*****************************
     *
     *   Private Functions
     *
     ******************************/
     
+    /*########################################################################
+    #   Descriptipn:    Count the nonzeros below a given node in a CSF tensor
+    #
+    #   Parameters:     fptr:   Adjacency pointer of CSF tensor
+    #                   nmodes: Number of modes in tensor
+    #                   depth:  Depth of the node
+    #                   fiber:  ID of the mode
+    #
+    #   Return:         The nonzeros below fptr[depth][fiber]
+    ########################################################################*/
+    private proc p_csf_count_nnz(fptr, nmodes, depth, fiber) 
+    {
+        //writeln("\ndepth = ", depth, ", fiber = ", fiber);
+        var t = depth;
+        if t == nmodes-1 {
+            return 1;
+        }
+
+        /*writeln("fptr[", t, "].subtree: ");
+        for e in fptr[t].subtree {
+            writeln(e);
+        }
+        exit(-1);*/
+
+        var left = fptr[t].subtree[fiber];
+        var right = fptr[t].subtree[fiber+1];
+        t += 1;
+        //writeln("left = ", left, ", right = ", right, ", depth = ", t);
+
+        while t < nmodes-1 {
+            left = fptr[t].subtree[left];
+            right = fptr[t].subtree[right];
+            //writeln("   left = ", left, ", right = ", right, ", depth = ", t);
+            t += 1;
+        }
+        return right - left;
+    }
+
     /*########################################################################
     #   Descriptipn:    Allocate and fill CSF tensor.
     #

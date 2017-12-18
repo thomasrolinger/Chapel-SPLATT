@@ -26,6 +26,16 @@ module MTTKRP {
 
     /*****************************
     *
+    *   tree_partition class
+    *
+    ******************************/
+    class tree_part {
+        var tree_part_d : domain(1) = 0..1;
+        var buf : [tree_part_d] int;
+    }
+
+    /*****************************
+    *
     *   MTTKRP workspace class
     *
     ******************************/
@@ -44,10 +54,10 @@ module MTTKRP {
             on a per-CSF basis, so we have one for each mode (the
             maximum number of CSF). In all cases, we rely on static
             partitioning via chains-on-chains partitioning.
-    
-            *** NOTE: For now, we are not doing tiling so we don't
-            have to worry about this
         */
+        var tree_d : domain(1) = 0..1;
+        var tile_partition : [0..0] int;
+        var tree_partition : [tree_d] tree_part;
 
         /*
             Privatization information: Privatizing a mode replicates the
@@ -117,7 +127,31 @@ module MTTKRP {
         assert(num_csf > 0);
         ws.num_csf = num_csf;
 
-        /* Skip partitioning stuff */
+        /* 
+            Setup partition info for each CSF.
+            Since we aren't doing tiling yet, this will only
+            affect the tree partition.
+
+            Below, we use -1 to stand for nil/null
+        */
+        //ws.tree_part_d = {0..num_csf-1, 0..(ws.num_threads+1)-1};
+        ws.tree_d = 0..num_csf-1;
+        for c in 0..num_csf-1 {
+            ws.tree_partition[c] = new tree_part();
+            ws.tree_partition[c].buf = -1;
+        }
+        // We're not doing tiling, so we just have a "blank" variable for it
+        ws.tile_partition = -1;
+        for c in 0..num_csf-1 {
+            var csf = tensors[c];
+            writeln("csf[0].pt[0].fptr[0]:");
+            for e in tensors[0].pt[0].fptr[0].subtree {
+                writeln(e);
+            }
+            exit(-1);
+            ws.tree_partition[c] = csf_partition_1d(csf, 0, ws.num_threads);
+        }
+        
     
         /* Allocate privatization buffer */
         var largest_priv_dim : int = 0;
@@ -202,6 +236,3 @@ module MTTKRP {
         return a <= b;
     }
 }
-
-
-
