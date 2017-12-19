@@ -15,6 +15,7 @@ module CSF {
     use splatt_sort;
     use Assert;
     use MTTKRP;
+    use ThreadPartition;
 
     /*****************************
     *
@@ -350,10 +351,16 @@ module CSF {
     {
         var nslices = csf.pt[tile_id].nfibs[0];
         var weights : [0..nslices-1] int;
-        for i in 0..nslices-1 {
+        forall i in 0..nslices-1 {
             weights[i] = p_csf_count_nnz(csf.pt[tile_id].fptr, csf.nmodes, 0, i);
         }
-        return new tree_part();
+    
+        var bneck : int;
+        var parts = partition_weighted(weights, nslices, nparts, bneck);
+        var ret = new tree_part();
+        ret.tree_part_d = 0..(nparts+1)-1;
+        ret.buf = parts;
+        return ret;
     }
 
     /*****************************
@@ -374,27 +381,18 @@ module CSF {
     ########################################################################*/
     private proc p_csf_count_nnz(fptr, nmodes, depth, fiber) 
     {
-        //writeln("\ndepth = ", depth, ", fiber = ", fiber);
         var t = depth;
         if t == nmodes-1 {
             return 1;
         }
 
-        /*writeln("fptr[", t, "].subtree: ");
-        for e in fptr[t].subtree {
-            writeln(e);
-        }
-        exit(-1);*/
-
         var left = fptr[t].subtree[fiber];
         var right = fptr[t].subtree[fiber+1];
         t += 1;
-        //writeln("left = ", left, ", right = ", right, ", depth = ", t);
 
         while t < nmodes-1 {
             left = fptr[t].subtree[left];
             right = fptr[t].subtree[right];
-            //writeln("   left = ", left, ", right = ", right, ", depth = ", t);
             t += 1;
         }
         return right - left;

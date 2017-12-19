@@ -44,6 +44,9 @@ module Base {
 
     // Timers
     var timers_g : splatt_timers;
+    
+    // Something in thread partition
+    var nprobes_g : int = 0;
 
     /*****************************
     *

@@ -16,6 +16,7 @@ module CPD {
     use MTTKRP;
     use IO.FormattedIO;
     use Time;
+    use ThreadInfo;
 
    /*****************************
     *
@@ -92,7 +93,13 @@ module CPD {
         var nmodes : int = tensors[0].nmodes;
         var nthreads : int = args.numThreads;
 
-        // Thread structures?? Ignore for now
+        // Setup thread structures. + 64 bytes is to avoid false sharing.
+        // SPLATT allocates this in terms of bytes but we're going to assume    
+        // the items will always be 8 bytes.
+        var lengths: [0..2] int = [((nmodes*nfactors*8)+64)/8, 0,((nmodes*nfactors*8)+64)/8];
+        var thds = thd_init(nthreads, 3, lengths);
+        exit(-1);
+        
 
         // m1 is the output of the MTTKRP
         var m1 = mats[nmodes];

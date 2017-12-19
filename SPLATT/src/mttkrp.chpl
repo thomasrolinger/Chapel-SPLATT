@@ -80,6 +80,49 @@ module MTTKRP {
 
     /*****************************
     *
+    *   Functions for MTTKRP-root locked
+    *
+    ******************************/
+    class mttkrp_root_locked {
+        // Just a container for a function so we can "pass" the
+        // function as an argument
+        
+        // ct is ONE of the CSF tensors; tid is the task ID that called this
+        // function.
+        proc p_csf_mttkrp_root_locked(ct, tile_id, mats, mode, partition, tid)
+        {
+            // extract tensor structures
+            var nmodes = ct.nmodes;
+            var vals = ct.pt[tile_id].vals;
+
+            // empty tile??
+            
+            if nmodes == 3 {
+                //TODO: Implement the below function
+                //p_csf_mttkrp_root3_locked(ct, tile_id, mats, mode, partition);
+                return;
+            }
+
+            var fp = ct.pt[tile_id].fptr;
+            var fids = ct.pt[tile_id].fids;
+            var nfactors = mats[0].J;
+
+            // mvals is an array of nmodes double pointers.
+            var mvals : [NUM_MODES_d] c_ptr(real);
+            // buf is an array of nmodes double pointers
+            var buf : [NUM_MODES_d] c_ptr(real);
+            var idxstack : [NUM_MODES_d] int;
+            
+            for m in 0..nmodes-1 {
+                mvals[m] = c_ptrTo(mats[csf_depth_to_mode(ct, m)].vals);
+                // grab next row of buf
+            }
+            
+        }
+    }
+
+    /*****************************
+    *
     *   Public Functions
     *
     ******************************/
@@ -230,4 +273,32 @@ module MTTKRP {
         var b = (thresh * csf[0].nnz:real);
         return a <= b;
     }
+
+    /*########################################################################
+    #   Descriptipn:    Map MTTKRP functions onto a possibly tiled CSF tensor.
+    #                   This function will handle any scheduling required with
+    #                   a partitially tiled tensor.
+    #
+    #   Parameters:     tensors (splatt_csf[]): An array of CSF representations.
+    #                                           tensors[csf_id] is processed.
+    #                   csf_id (int):           Which tensor are we processing
+    #                   atomic_func:            An MTTKRP function which atomically
+    #                                           updates the output.
+    #                   nosync_func:            An MTTKRP function which does not
+    #                                           atomically update.
+    #                   mats:                   The matrices, output stored at mat[nmodes].
+    #                   mode:                   Which mode of tensors is the output
+    #                   ws:                     MTTKRP workspace.
+    #
+    #   Return:         None
+    ########################################################################*/
+    //***** NOTE: For now, these function pointers will be objects, which
+    // contain the functions.
+    private proc p_schedule_tiles(tensors, csf_id, atomic_func, nosync_func, mats,
+                                  mode, ws)
+    {
+        return;
+    }
+
+
 }

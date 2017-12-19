@@ -17,7 +17,7 @@ module Timers {
     class splatt_timers {
         // Associative array: maps strings (timer names) to Timer objects
         var timer_d = {"TOTAL", "CPD", "IO", "MTTKRP", "INVERSE", "SORT",
-                       "CPD FIT", "MAT MULT", "MAT A^TA", "MAT NORM"};
+                       "CPD FIT", "MAT MULT", "MAT A^TA", "MAT NORM", "PART1D"};
         var timers : [timer_d] Timer;        
 
         /* Initialize the timers */
