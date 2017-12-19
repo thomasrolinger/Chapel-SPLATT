@@ -54,9 +54,6 @@ proc main(args: [] string)
     // all : all elements in csf
     var csf = csf_alloc(tt, cpdArgs);
 
-    writeln(csf[0].ntiles);
-    writeln(csf[1].ntiles);
-
     var nmodes : int = tt.nmodes;
 
     // Now that the CSF is built, we no longer need the sptensor tt

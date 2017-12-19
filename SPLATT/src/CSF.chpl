@@ -167,7 +167,8 @@ module CSF {
                 */
                 var oldTile = args.tiling;
                 args.tiling = 0;
-                last_mode = ret[0].dim_perm[tt.nmodes-1];
+                //last_mode = ret[0].dim_perm[tt.nmodes-1];
+                last_mode = csf_depth_to_mode(ret[0], tt.nmodes-1);
                 p_mk_csf(ret[1], tt, csf_mode_type.CSF_SORTED_MINUSONE, last_mode, args);
                 args.tiling = oldTile;            
             }
@@ -350,15 +351,8 @@ module CSF {
         var nslices = csf.pt[tile_id].nfibs[0];
         var weights : [0..nslices-1] int;
         for i in 0..nslices-1 {
-            writeln("csf.pt[", tile_id, "].fptr[0]:");
-            for e in csf.pt[tile_id].fptr[0].subtree {
-                writeln(e);
-            }
-            exit(-1);
             weights[i] = p_csf_count_nnz(csf.pt[tile_id].fptr, csf.nmodes, 0, i);
-            writeln(weights[i]);
         }
-        //exit(-1);
         return new tree_part();
     }
 
@@ -699,7 +693,7 @@ module CSF {
 
         // we will edit this to point to the new fiber indx instead
         // of nnz   
-        var fprev = pt.fptr[mode-1].subtree;
+        var fprev = c_ptrTo(pt.fptr[mode-1].subtree);
 
         // First count nfibers
         var nfibs : int = 0;

@@ -144,11 +144,6 @@ module MTTKRP {
         ws.tile_partition = -1;
         for c in 0..num_csf-1 {
             var csf = tensors[c];
-            writeln("csf[0].pt[0].fptr[0]:");
-            for e in tensors[0].pt[0].fptr[0].subtree {
-                writeln(e);
-            }
-            exit(-1);
             ws.tree_partition[c] = csf_partition_1d(csf, 0, ws.num_threads);
         }
         
