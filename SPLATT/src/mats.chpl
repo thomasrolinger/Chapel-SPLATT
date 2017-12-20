@@ -26,6 +26,11 @@ module Matrices {
         // the domain but it's nice to have.
         var I : int;
         var J : int;
+        // This is a ptr to vals. For most cases, we don't need this
+        // but when doing the MTTKRP, we need to get a reference to
+        // one of the matrix's vals array and assign it to a private
+        // copy.
+        var vals_ref : c_ptr(real);
     }
 
     /*****************************

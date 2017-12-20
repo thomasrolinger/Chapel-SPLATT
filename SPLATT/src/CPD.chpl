@@ -56,12 +56,14 @@ module CPD {
             mats[m].I = tensors[0].dims[m];
             mats[m].J = nfactors;
             mat_rand(mats[m], m);
+            mats[m].vals_ref = c_ptrTo(mats[m].vals);
         }
 
         // Last matrix has maxdim rows. We store result of MTTKRP here
         mats[nmodes].matrix_domain = {0..maxdim, 0..nfactors-1};
         mats[nmodes].I = maxdim;
         mats[nmodes].J = nfactors;
+        mats[nmodes].vals_ref = c_ptrTo(mats[nmodes].vals);
 
         // Perform iterations
         factored.fit = cpd_als_iterate(tensors, mats, factored.lambda_vals, nfactors, args);

@@ -29,7 +29,12 @@ module MutexPool {
         we will have padding between each sync variable
         to avoid false sharing. False sharing is when
         threads modify variables that reside on the same
-        cache line.
+        cache line. SPLATT stores locks as 32-bit ints but
+        we'll use 64-bit ints. Therefore, to allow for 64-bytes
+        of padding between each lock, our pad size is 8 bytes.
+        So lock ID 0 is at locks[0] and lock ID 1 is at locks[8].
+        The number of bytes between locks[0] and locks[8] is
+        sizeof(int64)* 8 = 64 bytes.
     */
     class mutex_pool {
         var initialized : bool;

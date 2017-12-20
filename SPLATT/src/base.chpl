@@ -36,7 +36,7 @@ module Base {
     const RAND_MAX: int = 2147483647;
     const DEFAULT_PRIV_THRESH : real = 0.02; 
     const DEFAULT_NLOCKS : int = 1024;
-    const DEFAULT_LOCK_PAD : int = 8;
+    const DEFAULT_LOCK_PAD : int = 8; // this is 8*8 bytes = 64 bytes. Used to prevent false sharing
 
     // Global "numThreads" so we don't have to pass it around all the time.
     // We set this once we parse the args

@@ -107,19 +107,12 @@ for i in 0..2 {
 }*/
 
 
+var arr = [1,2,3,4,5];
 
-class funcs {
-    proc foo()
-    {
-        writeln("Foo in funcs");
-        bar();
-    }
+var arrPtr = c_ptrTo(arr);
+
+for i in 0..4 {
+    arrPtr[i] = i*100;
 }
 
-proc bar()
-{
-    writeln("bar");
-}
-
-var f = new funcs();
-f.foo();
+writeln(arr);

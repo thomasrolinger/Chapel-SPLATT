@@ -138,8 +138,7 @@ module MTTKRP {
                 // checking for -1 is the same as checking for NULL (for us).
                 var fid = if fids[0].fiber_ids[0] == -1 then s else fibs[0].fiber_ids[s];
                 assert(fid < mats[nmodes].I);
-                //TODO: Implement the function below
-                p_propagate_up(buf[0], buf, idxstack, 0, s, fp, fids, vals, mvals, nmodes, nfactors, tid);
+                p_propagate_up(buf[0], buf, idxstack, 0, s, fp, fids, vals, mvals, nmodes, nfactors);
                 
                 // These are 1D arrays.
                 var orow = ovals(fid*nfactors);
@@ -153,7 +152,76 @@ module MTTKRP {
             
         }
     }
-    
+ 
+    /*****************************
+    *
+    *   Functions for MTTKRP-root nolock
+    *
+    ******************************/
+    class mttkrp_root_nolock {
+        proc p_csf_mttkrp_root_nolock(ct, tile_id, mats, mode, thds, partition, tid)
+        {
+            /* extract tensor structures */
+            var nmodes = ct.nmodes;
+            var vals = c_ptrTo(ct.pt[tile_id].vals);
+
+            // empty tile?? I don't think this will ever be the case for us
+
+            if nmodes == 3 {
+                p_csf_mttkrp_root3_nolock(ct, tile_id, mats, mode, thds, partition, tid);
+                return;
+            }
+        
+            // These get references to fptr and fids, so if
+            // we change something in fp and fids, it will
+            // change the values within ct as well.
+            var fp = ct.pt[tile_id].fptr;
+            var fids = ct.pt[tile_id].fids;
+            var nfactors = mats[0].J;
+
+            // mvals is an array of nmodes double pointers.
+            var mvals : [NUM_MODES_d] c_ptr(real);
+            // buf is an array of nmodes double pointers
+            var buf : [NUM_MODES_d] c_ptr(real);
+            var idxstack : [NUM_MODES_d] int;
+
+            for m in 0..nmodes-1 {
+                mvals[m] = c_ptrTo(mats[csf_depth_to_mode(ct, m)].vals);
+                // grab next row of buf from thds
+                buf[m] = c_ptrTo(thds[tid].scratch[2].buf[nfactors*m]);
+                c_memset(buf[m], 0, nfactors*8);
+            }
+
+            // ovals is a pointer to the 2D matrix vals. If we want to
+            // access any elements in vals, we need to use pointer arithmetic
+            // and assume the values are in row major order: to access ovals[i][j],
+            // we need to say ovals[(i*J)+j] where J is the number of columns in vals
+            var ovals = c_ptrTo(mats[nmodes].vals);
+
+            var nfibs = ct.pt[tile_id].nfibs[0];
+            assert(nfibs <= mats[nmodes].I);
+
+            var start = partition[tid];
+            var stop = partition[tid+1];
+            for s in start..stop-1 {
+                // checking for -1 is the same as checking for NULL (for us).
+                var fid = if fids[0].fiber_ids[0] == -1 then s else fibs[0].fiber_ids[s];
+                assert(fid < mats[nmodes].I);
+                p_propagate_up(buf[0], buf, idxstack, 0, s, fp, fids, vals, mvals, nmodes, nfactors);
+
+                // These are 1D arrays.
+                var orow = ovals(fid*nfactors);
+                var obuf = buf[0];
+                mutex_set_lock(pool_g, fid);
+                for f in 0..nfactors-1 {
+                    orow[f] += obuf[f];
+                }
+                mutex_unset_lock(pool_g, fid);
+            }
+
+        }
+    }
+   
     //***********************************************************************
     private proc p_csf_mttkrp_root3_locked(ct, tile_id, mats, mode, thds, partition, tid)
     {
@@ -223,6 +291,72 @@ module MTTKRP {
             mutex_unset_lock(pool_g, fid);
         }
     }
+
+    //***********************************************************************
+    private proc p_csf_mttkrp_root3_nolock(ct, tile_id, mats, mode, thds, partition, tid)
+    {
+        assert(ct.nmodes == 3);
+        var nmodes = ct.nmodes;
+        // pointers to 1D chapel arrays
+        var vals = c_ptrTo(ct.pt[tile_id].vals);
+        var sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
+        var fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
+        var sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
+        var fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
+        var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
+
+        // pointers to 2D chapel matrices
+        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,1)].vals);
+        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,2)].vals);
+        var ovals = c_ptrTo(mats[nmodes].vals);
+
+        var nfactors = mats[nmodes].J;
+
+        // pointer to 1D chapel array
+        var accumF = c_ptrTo(thds[tid].scratch[0].buf);
+
+        // write to output
+        var writeF = c_ptrTo(thds[tid].scratch[2].buf);
+        for r in 0..nfactors-1 {
+            writeF[r] = 0.0;
+        }
+
+        var nslices = ct.pt[tile_id].nfibs[0];
+        var start = partition[tid];
+        var stop = partition[tid+1];
+        for s in start..stop-1 {
+            var fid = if sids[0] == -1 then s else sids[s];
+            var mv = ovals + (fid * nfactors);
+            /* for each fiber in slice */
+            for f in sptr[s]..sptr[s+1]-1 {
+                /* first entry of the fiber is used to initialize accumF */
+                var jjfirst = fptr[f];
+                var vfirst = vals[jjfirst];
+                var bv = bvals + (inds[jjfirst] * nfactors);
+                for r in 0..nfactors-1 {
+                    accumF[r] = vfirst * bv[r];
+                }
+                /* for each nnz in fiber */
+                for jj in fptr[f]+1..fptr[f+1]-1 {
+                    var v = vals[jj];
+                    var bv = bvals + (inds[jj] * nfactors);
+                    for r in 0..nfactors-1 {
+                        accumF[r] += v * bv[r];
+                    }
+                }
+                /* scale inner products by row of A and upate to M */
+                var av = avals + (fids[f] * nfactors);
+                for r in 0..nfactors-1 {
+                    writeF[r] += acumF[r] * av[r];
+                }
+            }
+            /* flush to output */
+            for r in 0.. nfactors-1 {
+                mv[r] += writeF[r];
+                writeF[r] = 0.0;
+            }
+        }
+    }
     
     //***********************************************************************
     /*
@@ -237,7 +371,7 @@ module MTTKRP {
         mvals:      []cptr(real) -> 1D array of pointers to reals
     */
     private proc p_propagate_up(outBuf, buf, idxstack, init_depth, init_idx, fp, 
-                                fids, vals, mvals, nmodes, nfactors, tid)
+                                fids, vals, mvals, nmodes, nfactors)
     {
         /* push initial idx initialize idxstack */
         idxstack[init_depth] = init_idx;
@@ -447,12 +581,10 @@ module MTTKRP {
                 p_schedule_tiles function. We create a class
                 which has the function we need and pass that
                 class instance in.
-
-                Also, since we are not implementing tiling, I
-                am skipping the nosync functions
             */
             var atomicFunc = new mttkrp_root_locked();
-            p_schedule_tiles(tensors, which_csf, atomicFunc, mats, mode, thds, ws);
+            var nosyncFunc = new mttkrp_root_nolock();
+            p_schedule_tiles(tensors, which_csf, atomicFunc, nosyncFunc, mats, mode, thds, ws);
         }
     }
 
@@ -495,6 +627,8 @@ module MTTKRP {
     #                   csf_id (int):           Which tensor are we processing
     #                   atomic_func:            An MTTKRP function which atomically
     #                                           updates the output.
+    #                   nosync_func:            An MTTKRP function with does not
+    #                                           atomically update.
     #                   mats:                   The matrices, output stored at mat[nmodes].
     #                   mode:                   Which mode of tensors is the output
     #                   thds:                   Thread workspace
@@ -502,11 +636,49 @@ module MTTKRP {
     #
     #   Return:         None
     ########################################################################*/
-    //***** NOTE: For now, the function pointer will be an object, which
-    // contains the function.
-    private proc p_schedule_tiles(tensors, csf_id, atomic_func, mats, mode, thds, ws)
+    private proc p_schedule_tiles(tensors, csf_id, atomic_func, nosync_func, mats, mode, thds, ws)
     {
-        return;
+        var csf = tensors[csf_id];
+        var nmodes = csf.nmodes;
+        var depth = nmodes-1;
+        var nrows = mats[mode].I;
+        var ncols = mats[mode].J;
+
+        /* Store old pointer */
+        var global_output = c_ptrTo(mats[nmodes].vals);
+
+        coforall tid in 0..numThreads_g-1 {
+            // this is a tree_part object now
+            var tree_partition = ws.tree_partition[csf_id];
+            /*
+                We may need to edit mats[nmodes].vals so create a
+                private copy of the pointers to edit (not the entire
+                factor matrix). Updating vals within mats_priv WILL
+                change the vals in mats.
+            */
+            var mats_priv : [0..(nmodes+1)-1] dense_matrix;
+            for m in 0..nmodes-1 {
+                mats_priv[m] = mats[m];
+            }
+            /* 
+                Each thread gets a separate structure, but do a shallow copy.
+                This is where we use the vals_ref field. Need to make sure that
+                when we want to modify vals within mats_priv[nmodes] that we
+                use vals_ref.
+            */
+            mats_priv[nmodes] = new dense_matrix();
+            mats_priv[nmodes].I = mats[nmodes].I;
+            mats_priv[nmodes].J = mats[nmodes].J;
+            mats_priv[nmodes].matrix_domain = mats[nmodes].matrix_domain;
+            mats_priv[nmodes].vals_ref = mats_priv[nmodes].vals_ref;
+
+            /* 
+                Give each thread its own private buffer and overwrite
+                atomic function.
+            */
+            //TODO: Pick up from here
+        }
+        
     }
 
 
