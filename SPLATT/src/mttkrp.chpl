@@ -99,8 +99,7 @@ module MTTKRP {
             // empty tile?? I don't think this will ever be the case for us
             
             if nmodes == 3 {
-                //TODO: Implement the below function
-                //p_csf_mttkrp_root3_locked(ct, tile_id, mats, mode, partition);
+                p_csf_mttkrp_root3_locked(ct, tile_id, mats, mode, thds, partition, tid);
                 return;
             }
 
@@ -149,6 +148,76 @@ module MTTKRP {
                 mutex_unset_lock(pool_g, fid);
             }
             
+        }
+    }
+    
+    //***********************************************************************
+    private proc p_csf_mttkrp_root3_locked(ct, tile_id, mats, mode, thds, partition, tid)
+    {
+        assert(ct.nmodes == 3);
+        var nmodes = ct.nmodes;
+        // pointers to 1D chapel arrays
+        var vals = c_ptrTo(ct.pt[tile_id].vals);
+        var sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
+        var fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
+        var sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
+        var fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
+        var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
+
+        // pointers to 2D chapel matrices
+        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,1)].vals);
+        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,2)].vals);
+        var ovals = c_ptrTo(mats[nmodes].vals);
+
+        var nfactors = mats[nmodes].J;
+
+        // pointer to 1D chapel array
+        var accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        
+        // write to output
+        var writeF = c_ptrTo(thds[tid].scratch[2].buf);
+        for r in 0..nfactors-1 {
+            writeF[r] = 0.0;
+        }
+
+        var nslices = ct.pt[tile_id].nfibs[0];
+        var start = partition[tid];
+        var stop = partition[tid+1];
+        for s in start..stop-1 {
+            /* for each fiber in slice */   
+            for f in sptr[s]..sptr[s+1]-1 {
+                /* first entry of the fiber is used to initialize accumF */
+                var jjfirst = fptr[f];
+                var vfirst = vals[jjfirst];
+                var bv = bvals + (inds[jjfirst] * nfactors);
+                for r in 0..nfactors-1 {
+                    accumF[r] = vfirst * bv[r];
+                }
+                /* for each nnz in fiber */
+                for jj in fptr[f]+1..fptr[f+1]-1 {
+                    var v = vals[jj];
+                    var bv = bvals + (inds[jj] * nfactors);
+                    for r in 0..nfactors-1 {
+                        accumF[r] += v * bv[r];
+                    }
+                }
+                /* scale inner products by row of A and upate to M */
+                var av = avals + (fids[f] * nfactors);
+                for r in 0..nfactors-1 {
+                    writeF[r] += acumF[r] * av[r];
+                }
+            }
+            // checking for sids == NULL
+            var fid = if sids[0] == -1 then s else sids[s];
+            var mv = ovals + (fid * nfactors);
+            
+            /* flush to output */
+            mutex_set_lock(pool_g, fid);
+            for r in 0.. nfactors-1 {
+                mv[r] += writeF[r];
+                writeF[r] = 0.0;
+            }
+            mutex_unset_lock(pool_g, fid);
         }
     }
 
