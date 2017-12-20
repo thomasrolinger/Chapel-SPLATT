@@ -90,13 +90,13 @@ module MTTKRP {
         
         // ct is ONE of the CSF tensors; tid is the task ID that called this
         // function.
-        proc p_csf_mttkrp_root_locked(ct, tile_id, mats, mode, partition, tid)
+        proc p_csf_mttkrp_root_locked(ct, tile_id, mats, mode, thds, partition, tid)
         {
             // extract tensor structures
             var nmodes = ct.nmodes;
             var vals = ct.pt[tile_id].vals;
 
-            // empty tile??
+            // empty tile?? I don't think this will ever be the case for us
             
             if nmodes == 3 {
                 //TODO: Implement the below function
@@ -116,7 +116,37 @@ module MTTKRP {
             
             for m in 0..nmodes-1 {
                 mvals[m] = c_ptrTo(mats[csf_depth_to_mode(ct, m)].vals);
-                // grab next row of buf
+                // grab next row of buf from thds
+                buf[m] = c_ptrTo(thds[tid].scratch[2].buf[nfactors*m]);
+                c_memset(buf[m], 0, nfactors*8);
+            }
+            
+            // ovals is a pointer to the 2D matrix vals. If we want to
+            // access any elements in vals, we need to use pointer arithmetic
+            // and assume the values are in row major order: to access ovals[i][j],
+            // we need to say ovals[(i*J)+j] where J is the number of columns in vals
+            var ovals = c_ptrTo(mats[nmodes].vals);
+
+            var nfibs = ct.pt[tile_id].nfibs[0];
+            assert(nfibs <= mats[nmodes].I);
+
+            var start = partition[tid];
+            var stop = partition[tid+1];
+            for s in start..stop-1 {
+                // checking for -1 is the same as checking for NULL (for us).
+                var fid = if fids[0].fiber_ids[0] == -1 then s else fibs[0].fiber_ids[s];
+                assert(fid < mats[nmodes].I);
+                //TODO: Implement the function below
+                //p_propagate_up(buf[0], buf, idxstack, 0, s, fp, fids, vals, mvals, nmodes, nfactors);
+                
+                // These are 1D arrays.
+                var orow = ovals(fid*nfactors);
+                var obuf = buf[0];
+                mutex_set_lock(pool_g, fid);
+                for f in 0..nfactors-1 {
+                    orow[f] += obuf[f];
+                }
+                mutex_unset_lock(pool_g, fid);
             }
             
         }
@@ -222,12 +252,13 @@ module MTTKRP {
     #   Parameters:     tensors (splatt_csf[]): Tensor to factor in CSF
     #                   mats (dense_matrix[]):  Input/output matrices
     #                   mode (int):             Which mode we are computing for
+    #                   thds (thd_info[]):      Thread scratch space
     #                   ws (splatt_mttkrp_ws):  MTTKRP workspace
     #                   opts (cpd_cmd_args):    Arguments.
     #
     #   Return:         None
     ########################################################################*/
-    proc mttkrp_csf(tensors, mats, mode : int, ws : splatt_mttkrp_ws, opts)
+    proc mttkrp_csf(tensors, mats, mode : int, thds, ws : splatt_mttkrp_ws, opts)
     {
         // Set up mutex pool. The pool itself is global
         pool_g = mutex_alloc(DEFAULT_NLOCKS, DEFAULT_LOCK_PAD);

@@ -98,8 +98,6 @@ module CPD {
         // the items will always be 8 bytes.
         var lengths: [0..2] int = [((nmodes*nfactors*8)+64)/8, 0,((nmodes*nfactors*8)+64)/8];
         var thds = thd_init(nthreads, 3, lengths);
-        exit(-1);
-        
 
         // m1 is the output of the MTTKRP
         var m1 = mats[nmodes];
@@ -147,7 +145,7 @@ module CPD {
 
                 // M1 = X * (C o B)
                 timers_g.timers["MTTKRP"].start();
-                mttkrp_csf(tensors, mats, m, mttkrp_ws, args);
+                mttkrp_csf(tensors, mats, m, thds, mttkrp_ws, args);
                 timers_g.timers["MTTKRP"].stop();
             }
             itertime.stop();
