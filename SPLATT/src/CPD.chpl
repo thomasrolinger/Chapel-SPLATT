@@ -115,6 +115,7 @@ module CPD {
             aTa[m].I = nfactors;
             aTa[m].J = nfactors;
             aTa[m].vals = 0;
+            aTa[m].vals_ref = c_ptrTo(aTa[m].vals);
             // compute A^T*A
             mat_aTa(mats[m], aTa[m]);
         }
@@ -123,6 +124,7 @@ module CPD {
         aTa[nmodes].I = nfactors;
         aTa[nmodes].J = nfactors;
         aTa[nmodes].vals = 0;
+        aTa[nmodes].vals_ref = c_ptrTo(aTa[nmodes].vals);
 
         // MTTKRP workspace
         var mttkrp_ws: splatt_mttkrp_ws = splatt_mttkrp_alloc_ws(tensors, nfactors, args);

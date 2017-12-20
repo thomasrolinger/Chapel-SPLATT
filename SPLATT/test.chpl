@@ -106,13 +106,21 @@ for i in 0..2 {
     }
 }*/
 
+use Barriers;
+use Time;
 
-var arr = [1,2,3,4,5];
-
-var arrPtr = c_ptrTo(arr);
-
-for i in 0..4 {
-    arrPtr[i] = i*100;
+proc someFunc(tid, b)
+{
+    writeln("[", tid, "] waiting at barrier...");
+    b.barrier();
+    writeln("[", tid, "] over barrier!");
 }
 
-writeln(arr);
+var b = new Barrier(3);
+coforall tid in 0..2 {
+    writeln("[", tid, "] Entered loop. Sleeping for ", (tid*2)+5, " seconds...");
+    sleep((tid*2)+5);
+    someFunc(tid, b);    
+}
+writeln("done");
+

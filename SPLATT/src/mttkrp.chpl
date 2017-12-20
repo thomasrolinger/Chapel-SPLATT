@@ -14,6 +14,7 @@ module MTTKRP {
     use Assert;
     use Util;
     use MutexPool;
+    use Barriers;
 
     /*****************************
     *
@@ -79,6 +80,16 @@ module MTTKRP {
         var reduction_time : real;
     }
 
+/*#################################################################################################
+#
+#   Below are the classes for the various MTTKRP functions, which we need to "pass" into the
+#   p_schedule_tiles function. We declare a class for each function, and the only thing within
+#   the class is the function, called func. The function within the class will call out to other
+#   functions, which are defined further below.
+#
+####################################################################################################*/
+
+
     /*****************************
     *
     *   Functions for MTTKRP-root locked
@@ -90,7 +101,9 @@ module MTTKRP {
         
         // ct is ONE of the CSF tensors; tid is the task ID that called this
         // function.
-        proc p_csf_mttkrp_root_locked(ct, tile_id, mats, mode, thds, partition, tid)
+
+        //p_csf_mttkrp_root_locked
+        proc func(ct, tile_id, mats, mode, thds, partition, tid)
         {
             // extract tensor structures
             var nmodes = ct.nmodes;
@@ -136,12 +149,12 @@ module MTTKRP {
             var stop = partition[tid+1];
             for s in start..stop-1 {
                 // checking for -1 is the same as checking for NULL (for us).
-                var fid = if fids[0].fiber_ids[0] == -1 then s else fibs[0].fiber_ids[s];
+                var fid = if fids[0].fiber_ids[0] == -1 then s else fids[0].fiber_ids[s];
                 assert(fid < mats[nmodes].I);
                 p_propagate_up(buf[0], buf, idxstack, 0, s, fp, fids, vals, mvals, nmodes, nfactors);
                 
                 // These are 1D arrays.
-                var orow = ovals(fid*nfactors);
+                var orow = ovals + (fid*nfactors);
                 var obuf = buf[0];
                 mutex_set_lock(pool_g, fid);
                 for f in 0..nfactors-1 {
@@ -159,7 +172,8 @@ module MTTKRP {
     *
     ******************************/
     class mttkrp_root_nolock {
-        proc p_csf_mttkrp_root_nolock(ct, tile_id, mats, mode, thds, partition, tid)
+        //p_csf_mttkrp_root_nolock
+        proc func(ct, tile_id, mats, mode, thds, partition, tid)
         {
             /* extract tensor structures */
             var nmodes = ct.nmodes;
@@ -205,12 +219,12 @@ module MTTKRP {
             var stop = partition[tid+1];
             for s in start..stop-1 {
                 // checking for -1 is the same as checking for NULL (for us).
-                var fid = if fids[0].fiber_ids[0] == -1 then s else fibs[0].fiber_ids[s];
+                var fid = if fids[0].fiber_ids[0] == -1 then s else fids[0].fiber_ids[s];
                 assert(fid < mats[nmodes].I);
                 p_propagate_up(buf[0], buf, idxstack, 0, s, fp, fids, vals, mvals, nmodes, nfactors);
 
                 // These are 1D arrays.
-                var orow = ovals(fid*nfactors);
+                var orow = ovals + (fid*nfactors);
                 var obuf = buf[0];
                 mutex_set_lock(pool_g, fid);
                 for f in 0..nfactors-1 {
@@ -222,7 +236,17 @@ module MTTKRP {
         }
     }
    
-    //***********************************************************************
+/*#################################################################################################
+#
+#   Below are the various private functions
+#
+####################################################################################################*/
+
+    /*****************************
+    *
+    *   Private Functions
+    *
+    ******************************/
     private proc p_csf_mttkrp_root3_locked(ct, tile_id, mats, mode, thds, partition, tid)
     {
         assert(ct.nmodes == 3);
@@ -275,7 +299,7 @@ module MTTKRP {
                 /* scale inner products by row of A and upate to M */
                 var av = avals + (fids[f] * nfactors);
                 for r in 0..nfactors-1 {
-                    writeF[r] += acumF[r] * av[r];
+                    writeF[r] += accumF[r] * av[r];
                 }
             }
             // checking for sids == NULL
@@ -347,7 +371,7 @@ module MTTKRP {
                 /* scale inner products by row of A and upate to M */
                 var av = avals + (fids[f] * nfactors);
                 for r in 0..nfactors-1 {
-                    writeF[r] += acumF[r] * av[r];
+                    writeF[r] += accumF[r] * av[r];
                 }
             }
             /* flush to output */
@@ -452,6 +476,151 @@ module MTTKRP {
             a[f] = 0;
         }
     }
+
+    /*########################################################################
+    #   Descriptipn:    Should a certain mode be privatized to avoid locks?
+    #
+    #   Parameters:     csf (splatt_csf[]): Just used for dimensions
+    #                   mode (int):         The mode we're processing
+    #                   opts (cpd_cmd_args):Arguments
+    #
+    #   Return:         bool: True if we should privatize
+    ########################################################################*/
+    private proc p_is_privatized(csf, mode : int, opts : cpd_cmd_args) : bool
+    {
+        var length : int = csf[0].dims[mode];
+        var nthreads : int = opts.numThreads;
+        var thresh : real = DEFAULT_PRIV_THRESH;
+        // Don't bother if we're not multi-threaded
+        if nthreads == 1 {
+            return false;
+        }
+        var a = (length * nthreads) : real;
+        var b = (thresh * csf[0].nnz:real);
+        return a <= b;
+    }
+
+
+    /*########################################################################
+    #   Descriptipn:    Map MTTKRP functions onto a possibly tiled CSF tensor.
+    #                   This function will handle any scheduling required with
+    #                   a partitially tiled tensor.
+    #
+    #   Parameters:     tensors (splatt_csf[]): An array of CSF representations.
+    #                                           tensors[csf_id] is processed.
+    #                   csf_id (int):           Which tensor are we processing
+    #                   mttkrp_func:            An MTTKRP function
+    #                   mats:                   The matrices, output stored at mat[nmodes].
+    #                   mode:                   Which mode of tensors is the output
+    #                   thds:                   Thread workspace
+    #                   ws:                     MTTKRP workspace.
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_schedule_tiles(tensors, csf_id, mttkrp_func, mats, mode, thds, ws)
+    {
+        var csf = tensors[csf_id];
+        var nmodes = csf.nmodes;
+        var depth = nmodes-1;
+        var nrows = mats[mode].I;
+        var ncols = mats[mode].J;
+
+        /* Store old pointer */
+        var global_output = c_ptrTo(mats[nmodes].vals);
+    
+        /* barrier used in p_reduce_privatized */
+        var b = new Barrier(numThreads_g);
+
+        coforall tid in 0..numThreads_g-1 {
+            // this is a buffer/array, not an object
+            var tree_partition = ws.tree_partition[csf_id].buf;
+            /*
+                We may need to edit mats[nmodes].vals so create a
+                private copy of the pointers to edit (not the entire
+                factor matrix). Updating vals within mats_priv WILL
+                change the vals in mats.
+            */
+            var mats_priv : [0..(nmodes+1)-1] dense_matrix;
+            for m in 0..nmodes-1 {
+                mats_priv[m] = mats[m];
+            }
+            /* 
+                Each thread gets a separate structure, but do a shallow copy.
+                This is where we use the vals_ref field. Need to make sure that
+                when we want to modify vals within mats_priv[nmodes] that we
+                use vals_ref.
+            */
+            mats_priv[nmodes] = new dense_matrix();
+            mats_priv[nmodes].I = mats[nmodes].I;
+            mats_priv[nmodes].J = mats[nmodes].J;
+            mats_priv[nmodes].matrix_domain = mats[nmodes].matrix_domain;
+            mats_priv[nmodes].vals_ref = mats_priv[nmodes].vals_ref;
+
+            /* 
+                Give each thread its own private buffer and overwrite
+                atomic function.
+            */
+            if ws.is_privatized[mode] {
+                /* change (thread-private!) output structure */
+                var privBufPtr = c_ptrTo(ws.privatize_buffer[tid].buffer);
+                c_memset(privBufPtr, 0, nrows*ncols*8);
+                mats_priv[nmodes].vals_ref = privBufPtr;
+            }
+
+            /* We don't support tiling right now...*/
+            if csf.ntiles > 1 {
+                writeln("ERROR: Tiling not supported");
+            }
+            else {
+                /* untiled, parallelize within kernel */
+                mttkrp_func.func(csf, 0, mats_priv, mode, thds, tree_partition, tid);
+            }
+
+            /* If we used privatization, perform a reduction */
+            if ws.is_privatized[mode] {
+                p_reduce_privatized(ws, global_output, nrows, ncols, tid, b);
+            }
+        } /* end coforall */
+
+        /* restore pointer */
+        mats[nmodes].vals_ref = global_output;
+    } 
+
+    /*########################################################################
+    #   Descriptipn:    Perform a reduction on thread-local MTTKRP output
+    #
+    #   Parameters:     ws:             MTTKRP workspace.
+    #                   global_output:  The global MTTKRP output we are
+    #                                   reducing into
+    #                   nrows:          Number of rows in MTTKRP
+    #                   ncols:          Number of cols in MTTKRP
+    #                   tid:            This task's ID
+    #                   b:              Barrier to use
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_reduce_privatized(ws, global_output, nrows, ncols, tid, b)
+    {
+        /* Ensure everyone has finished their local MTTKRP */
+        b.barrier();
+        var elem_per_thread = (nrows * ncols) / numThreads_g;
+        var start = tid * elem_per_thread;
+        var stop = if tid == numThreads_g - 1 then (nrows*ncols) else (tid+1)*elem_per_thread;
+        
+        /* reduction */
+        for t in 0..numThreads_g-1 {
+            var thread_buf = c_ptrTo(ws.privatize_buffer[t].buffer);
+            for x in start..stop-1 {
+                global_output[x] += thread_buf[x];
+            }
+        }
+    }
+
+/*#################################################################################################
+#
+#   Below are the public functions
+#
+####################################################################################################*/
 
     /*****************************
     *
@@ -581,105 +750,26 @@ module MTTKRP {
                 p_schedule_tiles function. We create a class
                 which has the function we need and pass that
                 class instance in.
-            */
-            var atomicFunc = new mttkrp_root_locked();
-            var nosyncFunc = new mttkrp_root_nolock();
-            p_schedule_tiles(tensors, which_csf, atomicFunc, nosyncFunc, mats, mode, thds, ws);
-        }
-    }
-
-    /*****************************
-    *
-    *   Private Functions
-    *
-    ******************************/
     
-    /*########################################################################
-    #   Descriptipn:    Should a certain mode be privatized to avoid locks?
-    #
-    #   Parameters:     csf (splatt_csf[]): Just used for dimensions
-    #                   mode (int):         The mode we're processing
-    #                   opts (cpd_cmd_args):Arguments
-    #
-    #   Return:         bool: True if we should privatize
-    ########################################################################*/
-    private proc p_is_privatized(csf, mode : int, opts : cpd_cmd_args) : bool
-    {
-        var length : int = csf[0].dims[mode];
-        var nthreads : int = opts.numThreads;
-        var thresh : real = DEFAULT_PRIV_THRESH;
-        // Don't bother if we're not multi-threaded
-        if nthreads == 1 {
-            return false;
-        }
-        var a = (length * nthreads) : real;
-        var b = (thresh * csf[0].nnz:real);
-        return a <= b;
-    }
-
-    /*########################################################################
-    #   Descriptipn:    Map MTTKRP functions onto a possibly tiled CSF tensor.
-    #                   This function will handle any scheduling required with
-    #                   a partitially tiled tensor.
-    #
-    #   Parameters:     tensors (splatt_csf[]): An array of CSF representations.
-    #                                           tensors[csf_id] is processed.
-    #                   csf_id (int):           Which tensor are we processing
-    #                   atomic_func:            An MTTKRP function which atomically
-    #                                           updates the output.
-    #                   nosync_func:            An MTTKRP function with does not
-    #                                           atomically update.
-    #                   mats:                   The matrices, output stored at mat[nmodes].
-    #                   mode:                   Which mode of tensors is the output
-    #                   thds:                   Thread workspace
-    #                   ws:                     MTTKRP workspace.
-    #
-    #   Return:         None
-    ########################################################################*/
-    private proc p_schedule_tiles(tensors, csf_id, atomic_func, nosync_func, mats, mode, thds, ws)
-    {
-        var csf = tensors[csf_id];
-        var nmodes = csf.nmodes;
-        var depth = nmodes-1;
-        var nrows = mats[mode].I;
-        var ncols = mats[mode].J;
-
-        /* Store old pointer */
-        var global_output = c_ptrTo(mats[nmodes].vals);
-
-        coforall tid in 0..numThreads_g-1 {
-            // this is a tree_part object now
-            var tree_partition = ws.tree_partition[csf_id];
-            /*
-                We may need to edit mats[nmodes].vals so create a
-                private copy of the pointers to edit (not the entire
-                factor matrix). Updating vals within mats_priv WILL
-                change the vals in mats.
+                If we are privatizing this mode, then 
             */
-            var mats_priv : [0..(nmodes+1)-1] dense_matrix;
-            for m in 0..nmodes-1 {
-                mats_priv[m] = mats[m];
+            if ws.is_privatized[mode] {
+                /* don't use atomics */
+                var mttkrp_func = new mttkrp_root_nolock();
+                p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
             }
-            /* 
-                Each thread gets a separate structure, but do a shallow copy.
-                This is where we use the vals_ref field. Need to make sure that
-                when we want to modify vals within mats_priv[nmodes] that we
-                use vals_ref.
-            */
-            mats_priv[nmodes] = new dense_matrix();
-            mats_priv[nmodes].I = mats[nmodes].I;
-            mats_priv[nmodes].J = mats[nmodes].J;
-            mats_priv[nmodes].matrix_domain = mats[nmodes].matrix_domain;
-            mats_priv[nmodes].vals_ref = mats_priv[nmodes].vals_ref;
-
-            /* 
-                Give each thread its own private buffer and overwrite
-                atomic function.
-            */
-            //TODO: Pick up from here
+            else {
+                var mttkrp_func = new mttkrp_root_locked();
+                p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
+            }
         }
-        
+        else if outdepth == nmodes-1 {
+            //TODO: Do functions for leaf nodes
+            writeln("Coming soon");
+        }
+        else {
+            //TODO: Do functions for internal nodes
+            writeln("Coming soon");
+        }
     }
-
-
 }

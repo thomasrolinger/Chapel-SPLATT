@@ -1,0 +1,7 @@
+## MODE: 0, calling mttkrp_csf
+    ++ Calling p_schedule_tiles for internal
+## MODE: 1, calling mttkrp_csf
+    ++ Calling p_schedule_tiles for root
+## MODE: 2, calling mttkrp_csf
+    ++ Calling p_schedule_tiles for root
+  its =   1 (1.239s)  fit = 0.00029  delta = +2.9436e-04
