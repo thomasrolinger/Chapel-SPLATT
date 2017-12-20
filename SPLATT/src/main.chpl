@@ -15,6 +15,7 @@ use CSF;
 use Kruskal;
 use CPD;
 use Timers;
+use Time;
 
 proc main(args: [] string)
 {

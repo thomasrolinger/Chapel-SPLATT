@@ -10,6 +10,7 @@
 module Base {
     use Random;
     use Timers;
+    use MutexPool;
 
     /*****************************
     *
@@ -34,6 +35,8 @@ module Base {
     const SPLATT_SUCCESS: int = 1;
     const RAND_MAX: int = 2147483647;
     const DEFAULT_PRIV_THRESH : real = 0.02; 
+    const DEFAULT_NLOCKS : int = 1024;
+    const DEFAULT_LOCK_PAD : int = 8;
 
     // Global "numThreads" so we don't have to pass it around all the time.
     // We set this once we parse the args
@@ -47,6 +50,9 @@ module Base {
     
     // Something in thread partition
     var nprobes_g : int = 0;
+
+    // Mutex pool
+    var pool_g : mutex_pool;
 
     /*****************************
     *

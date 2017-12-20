@@ -13,6 +13,7 @@ module MTTKRP {
     use Args;
     use Assert;
     use Util;
+    use MutexPool;
 
     /*****************************
     *
@@ -228,7 +229,8 @@ module MTTKRP {
     ########################################################################*/
     proc mttkrp_csf(tensors, mats, mode : int, ws : splatt_mttkrp_ws, opts)
     {
-        // Mutex pool???
+        // Set up mutex pool. The pool itself is global
+        pool_g = mutex_alloc(DEFAULT_NLOCKS, DEFAULT_LOCK_PAD);
         
         var nmodes = tensors[0].nmodes;
 
