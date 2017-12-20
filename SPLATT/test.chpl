@@ -43,7 +43,7 @@ for i in 0..2 {
 writeln(mat);*/
 
 // Given a ptr to 2D matrix, get a pointer to somewhere inside it
-var mat : [0..2, 0..2] int;
+/*var mat : [0..2, 0..2] int;
 mat = -1;
 
 var ptrMat = c_ptrTo(mat);
@@ -63,4 +63,63 @@ for i in 0..2 {
     t[i] = 3;
 }
 
-writeln(mat);
+writeln(mat);*/
+
+/*class foo {
+    var buf : [0..3] int;
+}
+
+class bar {
+    var fooArr : [0..1] foo;
+}
+
+var t = new bar();
+for i in 0..1 {
+    t.fooArr[i] = new foo();
+    t.fooArr[i].buf = -1;
+}
+
+var x = t.fooArr[0];
+x.buf = 100;
+
+for i in 0..1 {
+    writeln(t.fooArr[i].buf);
+}*/
+
+
+/*var buf : [0..2] c_ptr(real);
+
+var t : [0..3] real;
+t = 1.0;
+var s : [0..3] real;
+s = 2.0;
+var u : [0..3] real;
+u = 3.0;
+
+buf[0] = c_ptrTo(t);
+buf[1] = c_ptrTo(s);
+buf[2] = c_ptrTo(u);
+
+for i in 0..2 {
+    for j in 0..3 {
+        writeln(buf[i][j]);
+    }
+}*/
+
+
+
+class funcs {
+    proc foo()
+    {
+        writeln("Foo in funcs");
+        bar();
+    }
+}
+
+proc bar()
+{
+    writeln("bar");
+}
+
+var f = new funcs();
+f.foo();

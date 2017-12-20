@@ -94,7 +94,7 @@ module MTTKRP {
         {
             // extract tensor structures
             var nmodes = ct.nmodes;
-            var vals = ct.pt[tile_id].vals;
+            var vals = c_ptrTo(ct.pt[tile_id].vals);
 
             // empty tile?? I don't think this will ever be the case for us
             
@@ -103,6 +103,9 @@ module MTTKRP {
                 return;
             }
 
+            // These get references to fptr and fids, so if
+            // we change something in fp and fids, it will
+            // change the values within ct as well.
             var fp = ct.pt[tile_id].fptr;
             var fids = ct.pt[tile_id].fids;
             var nfactors = mats[0].J;
@@ -136,7 +139,7 @@ module MTTKRP {
                 var fid = if fids[0].fiber_ids[0] == -1 then s else fibs[0].fiber_ids[s];
                 assert(fid < mats[nmodes].I);
                 //TODO: Implement the function below
-                //p_propagate_up(buf[0], buf, idxstack, 0, s, fp, fids, vals, mvals, nmodes, nfactors);
+                p_propagate_up(buf[0], buf, idxstack, 0, s, fp, fids, vals, mvals, nmodes, nfactors, tid);
                 
                 // These are 1D arrays.
                 var orow = ovals(fid*nfactors);
@@ -218,6 +221,101 @@ module MTTKRP {
                 writeF[r] = 0.0;
             }
             mutex_unset_lock(pool_g, fid);
+        }
+    }
+    
+    //***********************************************************************
+    /*
+        outBuf :    cptr(real) -> 1D array of reals
+        buf:        []cptr(real) -> 1D array of pointers to reals
+        idxstack:   int[] -> Chapel array of ints
+        init_depth: int
+        init_idx:   int
+        fp:         []csf_subtree -> array of objects
+        fids:       []csf_fiber_ids -> array of objects
+        vals:       cptr(real) -> 1D array of reals
+        mvals:      []cptr(real) -> 1D array of pointers to reals
+    */
+    private proc p_propagate_up(outBuf, buf, idxstack, init_depth, init_idx, fp, 
+                                fids, vals, mvals, nmodes, nfactors, tid)
+    {
+        /* push initial idx initialize idxstack */
+        idxstack[init_depth] = init_idx;
+        for m in init_depth+1..nmodes-1 {
+            idxstack[m] = fp[m-1].subtree[idxstack[m-1]];
+        }
+        assert(init_depth < nmodes-1);
+
+        /* clear out accumulation buffer */
+        for f in 0..nfactors-1 {
+            buf[init_depth+1][f] = 0;
+        }
+
+        while idxstack[init_depth+1] < fp[init_depth].subtree[init_idx+1] {
+            /* skip to last internal mode */
+            var depth = nmodes - 2;
+            /* process all nonzeros [start, end) into buf[depth] */
+            var start = fp[depth].subtree[idxstack[depth]];
+            var end = fp[depth].subtree[idxstack[depth]+1];
+            p_csf_process_fiber(buf[depth+1], nfactors, mvals[depth+1], start, end,
+                                fids[depth+1], vals);
+            idxstack[depth+1] = end;
+
+            /* exit early if there is no propagation to do */
+            if init_depth == nmodes-2 {
+                for f in 0..nfactors-1 {
+                    outBuf[f] = buf[depth+1][f];
+                }
+                return;
+            }
+
+            /* propagate up until we reach a node with more children to process */
+            do {
+                /* propagate result up and clear buffer for next sibling */
+                // fibrow is a ptr somewhere into mvals. So it's a 1D array
+                var fibrow = mvals[depth] + (fids[depth].fiber_ids[idxstack[depth]] * nfactors);
+                p_add_hada_clear(buf[depth], buf[depth+1], fibrow, nfactors);
+                idxstack[depth] += 1;
+                depth -= 1;
+            } while depth > init_depth && idxstack[depth+1] == fp[depth].subtree[idxstack[depth]+1];
+        }
+        /* copy to out */       
+        for f in 0..nfactors-1 {
+            outBuf[f] = buf[init_depth+1][f];
+        }
+    }
+
+    //***********************************************************************
+    /*
+        accumbuf:   real* -> 1D array of reals
+        leafmat:    real* -> 1D array of reals
+        inds:       csf_fiber_id -> object
+        vals:       real* -> 1D array of reals
+    */
+    private proc p_csf_process_fiber(accumbuf, nfactors, leafmat, start, end,
+                                     inds, vals)
+    {
+        /* for each nnz in fiber */
+        for j in start..end-1 {
+            var v = vals[j];
+            var row = leafmat + (nfactors * inds.fiber_ids[j]);
+            for f in 0..nfactors-1 {
+                accumbuf[f] += v * row[f];
+            }
+        }
+    }
+
+    //***********************************************************************
+    /*
+        outBuf: real*
+        a:      real*
+        b:      real*
+    */
+    private proc p_add_hada_clear(outBuf, a, b, nfactors)
+    {
+        for f in 0..nfactors-1 {
+            outBuf[f] += a[f] * b[f];
+            a[f] = 0;
         }
     }
 
@@ -344,6 +442,17 @@ module MTTKRP {
         var outdepth = csf_mode_to_depth(tensors[which_csf], mode);
         if outdepth == 0 {
             /* root */
+            /*
+                In SPLATT, function ptrs are passed into the
+                p_schedule_tiles function. We create a class
+                which has the function we need and pass that
+                class instance in.
+
+                Also, since we are not implementing tiling, I
+                am skipping the nosync functions
+            */
+            var atomicFunc = new mttkrp_root_locked();
+            p_schedule_tiles(tensors, which_csf, atomicFunc, mats, mode, thds, ws);
         }
     }
 
@@ -386,18 +495,16 @@ module MTTKRP {
     #                   csf_id (int):           Which tensor are we processing
     #                   atomic_func:            An MTTKRP function which atomically
     #                                           updates the output.
-    #                   nosync_func:            An MTTKRP function which does not
-    #                                           atomically update.
     #                   mats:                   The matrices, output stored at mat[nmodes].
     #                   mode:                   Which mode of tensors is the output
+    #                   thds:                   Thread workspace
     #                   ws:                     MTTKRP workspace.
     #
     #   Return:         None
     ########################################################################*/
-    //***** NOTE: For now, these function pointers will be objects, which
-    // contain the functions.
-    private proc p_schedule_tiles(tensors, csf_id, atomic_func, nosync_func, mats,
-                                  mode, ws)
+    //***** NOTE: For now, the function pointer will be an object, which
+    // contains the function.
+    private proc p_schedule_tiles(tensors, csf_id, atomic_func, mats, mode, thds, ws)
     {
         return;
     }
