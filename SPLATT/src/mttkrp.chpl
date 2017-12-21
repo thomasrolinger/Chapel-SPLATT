@@ -483,7 +483,7 @@ module MTTKRP {
                     accumF[r] = vfirst * bv[r];
                 }
                 /* for each nnz in fiber */
-                for jj in (fptr[f]+1)-1..fptr[f+1]-1 {
+                for jj in (fptr[f]+1)..fptr[f+1]-1 {
                     var v = vals[jj];
                     var bv = bvals + (inds[jj]*nfactors);
                     for r in 0..nfactors-1 {
@@ -541,7 +541,7 @@ module MTTKRP {
                     accumF[r] = vfirst * bv[r];
                 }
                 /* for each nnz in fiber */
-                for jj in (fptr[f]+1)-1..fptr[f+1]-1 {
+                for jj in (fptr[f]+1)..fptr[f+1]-1 {
                     var v = vals[jj];
                     var bv = bvals + (inds[jj]*nfactors);
                     for r in 0..nfactors-1 {
