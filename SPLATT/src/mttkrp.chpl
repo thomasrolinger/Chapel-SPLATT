@@ -173,7 +173,7 @@ module MTTKRP {
         {
             var nmodes = ct.nmodes;
             if nmodes == 3 {
-                p_csf_mttkrp_intl3_locked(ct, tile_id, mats, mode, thds, partition, tid);
+                p_csf_mttkrp_intl3_locked(ct, tile_id, mats, mode, thds, partition, tid);   
                 return;
             }
         }
@@ -220,9 +220,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,1)].vals);
-        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,2)].vals);
-        var ovals = c_ptrTo(mats[nmodes].vals);
+        var avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
 
         var nfactors = mats[nmodes].J;
 
@@ -290,9 +290,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,1)].vals);
-        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,2)].vals);
-        var ovals = c_ptrTo(mats[nmodes].vals);
+        var avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
 
         var nfactors = mats[nmodes].J;
 
@@ -356,9 +356,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,0)].vals);
-        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,1)].vals);
-        var ovals = c_ptrTo(mats[nmodes].vals);
+        var avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
         var nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
@@ -407,9 +407,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,0)].vals);
-        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,1)].vals);
-        var ovals = c_ptrTo(mats[nmodes].vals);
+        var avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
         var nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
@@ -445,6 +445,7 @@ module MTTKRP {
     //***********************************************************************
     private proc p_csf_mttkrp_intl3_locked(ct, tile_id, mats, mode, thds, partition, tid)
     {
+        writeln("\t\t\t- In p_csf_mttkrp_intl3_locked");
         assert(ct.nmodes == 3);
         var nmodes = ct.nmodes;
         // pointers to 1D chapel arrays
@@ -456,9 +457,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,0)].vals);
-        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,2)].vals);
-        var ovals = c_ptrTo(mats[nmodes].vals);
+        var avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
         var nfactors = mats[nmodes].J;
         
         // pointer to 1D chapel array
@@ -467,7 +468,7 @@ module MTTKRP {
         var nslices = ct.pt[tile_id].nfibs[0];
         var start = partition[tid];
         var stop = partition[tid+1];
-
+        
         for s in start..stop-1 {
             var fid = if sids[0] == -1 then s else sids[s];
             /* root roow */
@@ -514,9 +515,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,0)].vals);
-        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,2)].vals);
-        var ovals = c_ptrTo(mats[nmodes].vals);
+        var avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
         var nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
@@ -605,7 +606,7 @@ module MTTKRP {
         var ncols = mats[mode].J;
 
         /* Store old pointer */
-        var global_output = c_ptrTo(mats[nmodes].vals);
+        var global_output = mats[nmodes].vals_ref;
     
         /* barrier used in p_reduce_privatized */
         var b = new Barrier(numThreads_g);
@@ -633,7 +634,7 @@ module MTTKRP {
             mats_priv[nmodes].I = mats[nmodes].I;
             mats_priv[nmodes].J = mats[nmodes].J;
             mats_priv[nmodes].matrix_domain = mats[nmodes].matrix_domain;
-            mats_priv[nmodes].vals_ref = mats_priv[nmodes].vals_ref;
+            mats_priv[nmodes].vals_ref = mats[nmodes].vals_ref;
 
             /* 
                 Give each thread its own private buffer and overwrite
@@ -652,6 +653,28 @@ module MTTKRP {
             }
             else {
                 /* untiled, parallelize within kernel */
+                /*writeln("\t\t- Before calling mttkrp func");
+                writeln("\t\t- A: ");
+                write("\t\t");
+                for x in 0..9 {
+                    write(mats_priv[0].vals_ref[x], " ");
+                }    
+                writeln("\n\t\t- B: ");
+                write("\t\t");
+                for x in 0..9 {
+                    write(mats_priv[1].vals_ref[x], " ");
+                }
+                writeln("\n\t\t- C: ");
+                write("\t\t");
+                for x in 0..9 {
+                    write(mats_priv[2].vals_ref[x], " ");
+                }
+                writeln("\n\t\t- M1: ");
+                write("\t\t");
+                for x in 0..9 {
+                    write(mats_priv[nmodes].vals_ref[x], " ");
+                }
+                writeln("");*/
                 mttkrp_func.func(csf, 0, mats_priv, mode, thds, tree_partition, tid);
             }
 
@@ -817,12 +840,14 @@ module MTTKRP {
         /* Clear output matrix */
         var M = mats[nmodes];
         M.I = tensors[0].dims[mode];
+        M. matrix_domain = {0..M.I-1, 0..M.J-1};
         M.vals = 0;
 
         /* Choose which MTTKRP function to use */
         var which_csf = ws.mode_csf_map[mode];
         var outdepth = csf_mode_to_depth(tensors[which_csf], mode);
         if outdepth == 0 {
+            writeln("\t++ Calling p_schedule_tiles for root");
             /* root */
             if ws.is_privatized[mode] {
                 /* don't use atomics */
@@ -835,6 +860,7 @@ module MTTKRP {
             }
         }
         else if outdepth == nmodes-1 {
+            writeln("\t++ Calling p_schedule_tiles for leaf");
             /* leaf */
             if ws.is_privatized[mode] {
                 /* don't use atomics */
@@ -847,13 +873,16 @@ module MTTKRP {
             }
         }
         else {
+            writeln("\t++ Calling p_schedule_tiles for internal");
             /* internal */
             if ws.is_privatized[mode] {
                 /* don't use atomics */
+                writeln("\t- Using mttkrp_intl_no_lock");
                 var mttkrp_func = new mttkrp_intl_nolock();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
             }
             else {
+                writeln("\t- Using mttkrp_intl_locked");
                 var mttkrp_func = new mttkrp_intl_locked();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
             }

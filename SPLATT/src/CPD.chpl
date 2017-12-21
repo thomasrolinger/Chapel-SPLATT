@@ -148,9 +148,16 @@ module CPD {
                 m1.I = mats[m].I;
 
                 // M1 = X * (C o B)
+                writeln("## MODE: ", m, ", Calling mttkrp_csf");
                 timers_g.timers["MTTKRP"].start();
                 mttkrp_csf(tensors, mats, m, thds, mttkrp_ws, args);
                 timers_g.timers["MTTKRP"].stop();
+                writeln("M1:");
+                for x in 0..9 {
+                    write(mats[nmodes].vals_ref[x], " ");
+                }
+                writeln("");
+                exit(-1);
             }
             itertime.stop();
         }
