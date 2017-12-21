@@ -4,7 +4,11 @@
     File:   mttkrp.chpl
 
     Description:    This is a module file for things related
-                    to the MTTKRP
+                    to the MTTKRP.
+
+                    To make things easier, we are only doing
+                    3-mode tensors. I'll fill in the code for
+                    n-mode tensors some other time.
 */
 
 module MTTKRP {
@@ -89,80 +93,20 @@ module MTTKRP {
 #
 ####################################################################################################*/
 
-
     /*****************************
     *
     *   Functions for MTTKRP-root locked
     *
     ******************************/
     class mttkrp_root_locked {
-        // Just a container for a function so we can "pass" the
-        // function as an argument
-        
-        // ct is ONE of the CSF tensors; tid is the task ID that called this
-        // function.
-
         //p_csf_mttkrp_root_locked
         proc func(ct, tile_id, mats, mode, thds, partition, tid)
         {
-            // extract tensor structures
             var nmodes = ct.nmodes;
-            var vals = c_ptrTo(ct.pt[tile_id].vals);
-
-            // empty tile?? I don't think this will ever be the case for us
-            
             if nmodes == 3 {
                 p_csf_mttkrp_root3_locked(ct, tile_id, mats, mode, thds, partition, tid);
                 return;
             }
-
-            // These get references to fptr and fids, so if
-            // we change something in fp and fids, it will
-            // change the values within ct as well.
-            var fp = ct.pt[tile_id].fptr;
-            var fids = ct.pt[tile_id].fids;
-            var nfactors = mats[0].J;
-
-            // mvals is an array of nmodes double pointers.
-            var mvals : [NUM_MODES_d] c_ptr(real);
-            // buf is an array of nmodes double pointers
-            var buf : [NUM_MODES_d] c_ptr(real);
-            var idxstack : [NUM_MODES_d] int;
-            
-            for m in 0..nmodes-1 {
-                mvals[m] = c_ptrTo(mats[csf_depth_to_mode(ct, m)].vals);
-                // grab next row of buf from thds
-                buf[m] = c_ptrTo(thds[tid].scratch[2].buf[nfactors*m]);
-                c_memset(buf[m], 0, nfactors*8);
-            }
-            
-            // ovals is a pointer to the 2D matrix vals. If we want to
-            // access any elements in vals, we need to use pointer arithmetic
-            // and assume the values are in row major order: to access ovals[i][j],
-            // we need to say ovals[(i*J)+j] where J is the number of columns in vals
-            var ovals = c_ptrTo(mats[nmodes].vals);
-
-            var nfibs = ct.pt[tile_id].nfibs[0];
-            assert(nfibs <= mats[nmodes].I);
-
-            var start = partition[tid];
-            var stop = partition[tid+1];
-            for s in start..stop-1 {
-                // checking for -1 is the same as checking for NULL (for us).
-                var fid = if fids[0].fiber_ids[0] == -1 then s else fids[0].fiber_ids[s];
-                assert(fid < mats[nmodes].I);
-                p_propagate_up(buf[0], buf, idxstack, 0, s, fp, fids, vals, mvals, nmodes, nfactors);
-                
-                // These are 1D arrays.
-                var orow = ovals + (fid*nfactors);
-                var obuf = buf[0];
-                mutex_set_lock(pool_g, fid);
-                for f in 0..nfactors-1 {
-                    orow[f] += obuf[f];
-                }
-                mutex_unset_lock(pool_g, fid);
-            }
-            
         }
     }
  
@@ -175,67 +119,83 @@ module MTTKRP {
         //p_csf_mttkrp_root_nolock
         proc func(ct, tile_id, mats, mode, thds, partition, tid)
         {
-            /* extract tensor structures */
             var nmodes = ct.nmodes;
-            var vals = c_ptrTo(ct.pt[tile_id].vals);
-
-            // empty tile?? I don't think this will ever be the case for us
-
             if nmodes == 3 {
                 p_csf_mttkrp_root3_nolock(ct, tile_id, mats, mode, thds, partition, tid);
                 return;
             }
-        
-            // These get references to fptr and fids, so if
-            // we change something in fp and fids, it will
-            // change the values within ct as well.
-            var fp = ct.pt[tile_id].fptr;
-            var fids = ct.pt[tile_id].fids;
-            var nfactors = mats[0].J;
-
-            // mvals is an array of nmodes double pointers.
-            var mvals : [NUM_MODES_d] c_ptr(real);
-            // buf is an array of nmodes double pointers
-            var buf : [NUM_MODES_d] c_ptr(real);
-            var idxstack : [NUM_MODES_d] int;
-
-            for m in 0..nmodes-1 {
-                mvals[m] = c_ptrTo(mats[csf_depth_to_mode(ct, m)].vals);
-                // grab next row of buf from thds
-                buf[m] = c_ptrTo(thds[tid].scratch[2].buf[nfactors*m]);
-                c_memset(buf[m], 0, nfactors*8);
-            }
-
-            // ovals is a pointer to the 2D matrix vals. If we want to
-            // access any elements in vals, we need to use pointer arithmetic
-            // and assume the values are in row major order: to access ovals[i][j],
-            // we need to say ovals[(i*J)+j] where J is the number of columns in vals
-            var ovals = c_ptrTo(mats[nmodes].vals);
-
-            var nfibs = ct.pt[tile_id].nfibs[0];
-            assert(nfibs <= mats[nmodes].I);
-
-            var start = partition[tid];
-            var stop = partition[tid+1];
-            for s in start..stop-1 {
-                // checking for -1 is the same as checking for NULL (for us).
-                var fid = if fids[0].fiber_ids[0] == -1 then s else fids[0].fiber_ids[s];
-                assert(fid < mats[nmodes].I);
-                p_propagate_up(buf[0], buf, idxstack, 0, s, fp, fids, vals, mvals, nmodes, nfactors);
-
-                // These are 1D arrays.
-                var orow = ovals + (fid*nfactors);
-                var obuf = buf[0];
-                mutex_set_lock(pool_g, fid);
-                for f in 0..nfactors-1 {
-                    orow[f] += obuf[f];
-                }
-                mutex_unset_lock(pool_g, fid);
-            }
-
         }
     }
-   
+
+    /*****************************
+    *
+    *   Functions for MTTKRP-leaf locked
+    *
+    ******************************/
+    class mttkrp_leaf_locked {
+        // p_mttkrp_leaf_locked
+        proc func(ct, tile_id, mats, mode, thds, partition, tid)
+        {
+            var nmodes = ct.nmodes;
+            if nmodes == 3 {
+                p_csf_mttkrp_leaf3_locked(ct, tile_id, mats, mode, thds, partition, tid);
+                return;
+            }
+        }
+    } 
+
+    /*****************************
+    *
+    *   Functions for MTTKRP-leaf no lock
+    *
+    ******************************/
+    class mttkrp_leaf_nolock {
+        // p_csf_mttkrp_leaf_nolock
+        proc func(ct, tile_id, mats, mode, thds, partition, tid)
+        {
+            var nmodes = ct.nmodes;
+            if nmodes == 3 {
+                p_csf_mttkrp_leaf3_nolock(ct, tile_id, mats, mode, thds, partition, tid);
+                return;
+            }
+        } 
+    } 
+
+    
+    /*****************************
+    *
+    *   Functions for MTTKRP-internal locked
+    *
+    ******************************/
+    class mttkrp_intl_locked {
+        // p_mttkrp_intl_locked
+        proc func(ct, tile_id, mats, mode, thds, partition, tid)
+        {
+            var nmodes = ct.nmodes;
+            if nmodes == 3 {
+                p_csf_mttkrp_intl3_locked(ct, tile_id, mats, mode, thds, partition, tid);
+                return;
+            }
+        }
+    } 
+
+    /*****************************
+    *
+    *   Functions for MTTKRP-internal no lock
+    *
+    ******************************/
+    class mttkrp_intl_nolock {
+        // p_csf_mttkrp_intl_nolock
+        proc func(ct, tile_id, mats, mode, thds, partition, tid)
+        {
+            var nmodes = ct.nmodes;
+            if nmodes == 3 {
+                p_csf_mttkrp_intl3_nolock(ct, tile_id, mats, mode, thds, partition, tid);
+                return;
+            }
+        }
+    }   
+ 
 /*#################################################################################################
 #
 #   Below are the various private functions
@@ -383,97 +343,216 @@ module MTTKRP {
     }
     
     //***********************************************************************
-    /*
-        outBuf :    cptr(real) -> 1D array of reals
-        buf:        []cptr(real) -> 1D array of pointers to reals
-        idxstack:   int[] -> Chapel array of ints
-        init_depth: int
-        init_idx:   int
-        fp:         []csf_subtree -> array of objects
-        fids:       []csf_fiber_ids -> array of objects
-        vals:       cptr(real) -> 1D array of reals
-        mvals:      []cptr(real) -> 1D array of pointers to reals
-    */
-    private proc p_propagate_up(outBuf, buf, idxstack, init_depth, init_idx, fp, 
-                                fids, vals, mvals, nmodes, nfactors)
+    private proc p_csf_mttkrp_leaf3_locked(ct, tile_id, mats, mode, thds, partition, tid)
     {
-        /* push initial idx initialize idxstack */
-        idxstack[init_depth] = init_idx;
-        for m in init_depth+1..nmodes-1 {
-            idxstack[m] = fp[m-1].subtree[idxstack[m-1]];
-        }
-        assert(init_depth < nmodes-1);
+        assert(ct.nmodes == 3);
+        var nmodes = ct.nmodes;
+        // pointers to 1D chapel arrays
+        var vals = c_ptrTo(ct.pt[tile_id].vals);
+        var sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
+        var fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
+        var sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
+        var fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
+        var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
-        /* clear out accumulation buffer */
-        for f in 0..nfactors-1 {
-            buf[init_depth+1][f] = 0;
-        }
+        // pointers to 2D chapel matrices
+        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,0)].vals);
+        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,1)].vals);
+        var ovals = c_ptrTo(mats[nmodes].vals);
+        var nfactors = mats[nmodes].J;
 
-        while idxstack[init_depth+1] < fp[init_depth].subtree[init_idx+1] {
-            /* skip to last internal mode */
-            var depth = nmodes - 2;
-            /* process all nonzeros [start, end) into buf[depth] */
-            var start = fp[depth].subtree[idxstack[depth]];
-            var end = fp[depth].subtree[idxstack[depth]+1];
-            p_csf_process_fiber(buf[depth+1], nfactors, mvals[depth+1], start, end,
-                                fids[depth+1], vals);
-            idxstack[depth+1] = end;
+        // pointer to 1D chapel array
+        var accumF = c_ptrTo(thds[tid].scratch[0].buf);
 
-            /* exit early if there is no propagation to do */
-            if init_depth == nmodes-2 {
-                for f in 0..nfactors-1 {
-                    outBuf[f] = buf[depth+1][f];
+        var nslices = ct.pt[tile_id].nfibs[0];
+        var start = partition[tid];
+        var stop = partition[tid+1];
+
+        for s in start..stop-1 {
+            var fid = if sids[0] == -1 then s else sids[s];
+            /* root row */
+            var rv = avals + (fid * nfactors);
+            /* for each fiber in slice */
+            for f in sptr[s]..sptr[s+1]-1 {
+                /* fill fiber with hada */
+                var av = bvals + (fids[f] * nfactors);
+                for r in 0..nfactors-1 {
+                    accumF[r] = rv[r] * av[r];
                 }
-                return;
-            }
-
-            /* propagate up until we reach a node with more children to process */
-            do {
-                /* propagate result up and clear buffer for next sibling */
-                // fibrow is a ptr somewhere into mvals. So it's a 1D array
-                var fibrow = mvals[depth] + (fids[depth].fiber_ids[idxstack[depth]] * nfactors);
-                p_add_hada_clear(buf[depth], buf[depth+1], fibrow, nfactors);
-                idxstack[depth] += 1;
-                depth -= 1;
-            } while depth > init_depth && idxstack[depth+1] == fp[depth].subtree[idxstack[depth]+1];
-        }
-        /* copy to out */       
-        for f in 0..nfactors-1 {
-            outBuf[f] = buf[init_depth+1][f];
-        }
-    }
-
-    //***********************************************************************
-    /*
-        accumbuf:   real* -> 1D array of reals
-        leafmat:    real* -> 1D array of reals
-        inds:       csf_fiber_id -> object
-        vals:       real* -> 1D array of reals
-    */
-    private proc p_csf_process_fiber(accumbuf, nfactors, leafmat, start, end,
-                                     inds, vals)
-    {
-        /* for each nnz in fiber */
-        for j in start..end-1 {
-            var v = vals[j];
-            var row = leafmat + (nfactors * inds.fiber_ids[j]);
-            for f in 0..nfactors-1 {
-                accumbuf[f] += v * row[f];
+                /* for each nnz in fiber, scale with hada and write to ovals */
+                for jj in fptr[f]..fptr[f+1]-1 {
+                    var v = vals[jj];
+                    var ov = ovals + (inds[jj] * nfactors);
+                    mutex_set_lock(pool_g, inds[jj]);
+                    for r in 0..nfactors-1 {
+                        ov[r] += v * accumF[r];
+                    }
+                    mutex_unset_lock(pool_g, inds[jj]);
+                }
             }
         }
     }
 
     //***********************************************************************
-    /*
-        outBuf: real*
-        a:      real*
-        b:      real*
-    */
-    private proc p_add_hada_clear(outBuf, a, b, nfactors)
+    private proc p_csf_mttkrp_leaf3_nolock(ct, tile_id, mats, mode, thds, partition, tid)
     {
-        for f in 0..nfactors-1 {
-            outBuf[f] += a[f] * b[f];
-            a[f] = 0;
+        assert(ct.nmodes == 3);
+        var nmodes = ct.nmodes;
+        // pointers to 1D chapel arrays
+        var vals = c_ptrTo(ct.pt[tile_id].vals);
+        var sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
+        var fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
+        var sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
+        var fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
+        var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
+
+        // pointers to 2D chapel matrices
+        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,0)].vals);
+        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,1)].vals);
+        var ovals = c_ptrTo(mats[nmodes].vals);
+        var nfactors = mats[nmodes].J;
+
+        // pointer to 1D chapel array
+        var accumF = c_ptrTo(thds[tid].scratch[0].buf);
+
+        var nslices = ct.pt[tile_id].nfibs[0];
+        var start = partition[tid];
+        var stop = partition[tid+1];
+
+        for s in start..stop-1 {
+            var fid = if sids[0] == -1 then s else sids[s];
+            /* root row */
+            var rv = avals + (fid * nfactors);
+            /* for each fiber in slice */
+            for f in sptr[s]..sptr[s+1]-1 {
+                /* fill fiber with hada */
+                var av = bvals + (fids[f] * nfactors);
+                for r in 0..nfactors-1 {
+                    accumF[r] = rv[r] * av[r];
+                }
+                /* for each nnz in fiber, scale with hada and write to ovals */
+                for jj in fptr[f]..fptr[f+1]-1 {
+                    var v = vals[jj];
+                    var ov = ovals + (inds[jj] * nfactors);
+                    for r in 0..nfactors-1 {
+                        ov[r] += v * accumF[r];
+                    }
+                }
+            }
+        }
+    }
+
+    //***********************************************************************
+    private proc p_csf_mttkrp_intl3_locked(ct, tile_id, mats, mode, thds, partition, tid)
+    {
+        assert(ct.nmodes == 3);
+        var nmodes = ct.nmodes;
+        // pointers to 1D chapel arrays
+        var vals = c_ptrTo(ct.pt[tile_id].vals);
+        var sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
+        var fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
+        var sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
+        var fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
+        var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
+
+        // pointers to 2D chapel matrices
+        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,0)].vals);
+        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,2)].vals);
+        var ovals = c_ptrTo(mats[nmodes].vals);
+        var nfactors = mats[nmodes].J;
+        
+        // pointer to 1D chapel array
+        var accumF = c_ptrTo(thds[tid].scratch[0].buf);
+
+        var nslices = ct.pt[tile_id].nfibs[0];
+        var start = partition[tid];
+        var stop = partition[tid+1];
+
+        for s in start..stop-1 {
+            var fid = if sids[0] == -1 then s else sids[s];
+            /* root roow */
+            var rv = avals + (fid * nfactors);
+            /* for each fiber in slice */
+            for f in sptr[s]..sptr[s+1]-1 {
+                /* first entry of the fiber is used to initialize accumF */
+                var jjfirst = fptr[f];
+                var vfirst = vals[jjfirst];
+                var bv = bvals + (inds[jjfirst] * nfactors);
+                for r in 0..nfactors-1 {
+                    accumF[r] = vfirst * bv[r];
+                }
+                /* for each nnz in fiber */
+                for jj in (fptr[f]+1)-1..fptr[f+1]-1 {
+                    var v = vals[jj];
+                    var bv = bvals + (inds[jj]*nfactors);
+                    for r in 0..nfactors-1 {
+                        accumF[r] += v * bv[r];
+                    }
+                }
+                /* write to fiber row */
+                var ov = ovals + (fids[f] * nfactors);
+                mutex_set_lock(pool_g, fids[f]);
+                for r in 0..nfactors-1 {
+                    ov[r] += rv[r] * accumF[r];
+                }
+                mutex_unset_lock(pool_g, fids[f]);
+            }
+        }
+    }
+
+    //***********************************************************************
+    private proc p_csf_mttkrp_intl3_nolock(ct, tile_id, mats, mode, thds, partition, tid)
+    {
+        assert(ct.nmodes == 3);
+        var nmodes = ct.nmodes;
+        // pointers to 1D chapel arrays
+        var vals = c_ptrTo(ct.pt[tile_id].vals);
+        var sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
+        var fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
+        var sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
+        var fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
+        var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
+
+        // pointers to 2D chapel matrices
+        var avals = c_ptrTo(mats[csf_depth_to_mode(ct,0)].vals);
+        var bvals = c_ptrTo(mats[csf_depth_to_mode(ct,2)].vals);
+        var ovals = c_ptrTo(mats[nmodes].vals);
+        var nfactors = mats[nmodes].J;
+
+        // pointer to 1D chapel array
+        var accumF = c_ptrTo(thds[tid].scratch[0].buf);
+
+        var nslices = ct.pt[tile_id].nfibs[0];
+        var start = partition[tid];
+        var stop = partition[tid+1];
+
+        for s in start..stop-1 {
+            var fid = if sids[0] == -1 then s else sids[s];
+            /* root roow */
+            var rv = avals + (fid * nfactors);
+            /* for each fiber in slice */
+            for f in sptr[s]..sptr[s+1]-1 {
+                /* first entry of the fiber is used to initialize accumF */
+                var jjfirst = fptr[f];
+                var vfirst = vals[jjfirst];
+                var bv = bvals + (inds[jjfirst] * nfactors);
+                for r in 0..nfactors-1 {
+                    accumF[r] = vfirst * bv[r];
+                }
+                /* for each nnz in fiber */
+                for jj in (fptr[f]+1)-1..fptr[f+1]-1 {
+                    var v = vals[jj];
+                    var bv = bvals + (inds[jj]*nfactors);
+                    for r in 0..nfactors-1 {
+                        accumF[r] += v * bv[r];
+                    }
+                }
+                /* write to fiber row */
+                var ov = ovals + (fids[f] * nfactors);
+                for r in 0..nfactors-1 {
+                    ov[r] += rv[r] * accumF[r];
+                }
+            }
         }
     }
 
@@ -745,14 +824,6 @@ module MTTKRP {
         var outdepth = csf_mode_to_depth(tensors[which_csf], mode);
         if outdepth == 0 {
             /* root */
-            /*
-                In SPLATT, function ptrs are passed into the
-                p_schedule_tiles function. We create a class
-                which has the function we need and pass that
-                class instance in.
-    
-                If we are privatizing this mode, then 
-            */
             if ws.is_privatized[mode] {
                 /* don't use atomics */
                 var mttkrp_func = new mttkrp_root_nolock();
@@ -764,12 +835,28 @@ module MTTKRP {
             }
         }
         else if outdepth == nmodes-1 {
-            //TODO: Do functions for leaf nodes
-            writeln("Coming soon");
+            /* leaf */
+            if ws.is_privatized[mode] {
+                /* don't use atomics */
+                var mttkrp_func = new mttkrp_leaf_nolock();
+                p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
+            }
+            else {
+                var mttkrp_func = new mttkrp_leaf_locked();
+                p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
+            }
         }
         else {
-            //TODO: Do functions for internal nodes
-            writeln("Coming soon");
+            /* internal */
+            if ws.is_privatized[mode] {
+                /* don't use atomics */
+                var mttkrp_func = new mttkrp_intl_nolock();
+                p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
+            }
+            else {
+                var mttkrp_func = new mttkrp_intl_locked();
+                p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
+            }
         }
     }
 }
