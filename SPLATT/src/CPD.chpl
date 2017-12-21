@@ -152,9 +152,11 @@ module CPD {
                 timers_g.timers["MTTKRP"].start();
                 mttkrp_csf(tensors, mats, m, thds, mttkrp_ws, args);
                 timers_g.timers["MTTKRP"].stop();
-                writeln("M1:");
+
+                par_memcpy(mats[m].vals_ref, m1.vals_ref, m1.I * nfactors);
+                writeln("mats[", m, "]:");
                 for x in 0..9 {
-                    write(mats[nmodes].vals_ref[x], " ");
+                    write(mats[m].vals[0,x], " ");
                 }
                 writeln("");
                 exit(-1);

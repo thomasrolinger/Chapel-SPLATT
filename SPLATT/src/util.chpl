@@ -64,4 +64,22 @@ module Util {
         reader.close();        
         
     }
+
+    /*
+        Performs a memcpy in parallel from src to dest.
+        SPLATT in C divides the work up by bytes, casting
+        src and dst to char*. I don't think we can do that
+        easily in Chapel, so we divide the work up by
+        number of elements, where each element is 8 bytes.
+        src and dest are c-ptrs.
+    */
+    proc par_memcpy(dst, src, numElems)
+    {
+        coforall tid in 0..numThreads_g-1 {
+            var n_per_thread = (numElems + numThreads_g -1) / numThreads_g;
+            var n_begin = min(n_per_thread * tid, numElems);
+            var n_end = min(n_begin + n_per_thread, numElems);
+            c_memcpy(dst+n_begin, src+n_begin, n_end-n_begin);
+        }
+    }
 }
