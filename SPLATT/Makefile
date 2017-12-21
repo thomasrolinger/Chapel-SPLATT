@@ -1,6 +1,6 @@
 INC_DIRS=${CBLAS_DIR}
 LIB_DIRS=${BLAS_LIBS}
-LIBS=-lblas
+LIBS=-lblas -lgfortran -llapacke -lapack -lrefblas
 MISC_FLAGS=--permit-unhandled-module-errors
 
 CHPL=chpl

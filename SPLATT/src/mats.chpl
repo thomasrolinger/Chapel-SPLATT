@@ -10,7 +10,8 @@
 module Matrices {
     use Base;
     use BLAS;
-    use BLAS.C_BLAS;
+    use LAPACK;
+    use Barriers;
 
     /*****************************
     *
@@ -31,6 +32,64 @@ module Matrices {
         // one of the matrix's vals array and assign it to a private
         // copy.
         var vals_ref : c_ptr(real);
+    }
+
+    /*****************************
+    *
+    *   Private Functions
+    *
+    ******************************/
+    /*########################################################################
+    #   Descriptipn:    Form the Gram matrix from A^T * A
+    #
+    #   Parameters:     neq_matrix (real[]):    The matrix to fill
+    #                   aTa (dense_matrix[]):   Individual Gram matrices
+    #                   mode (int):             Which mode we are doing
+    #                   nmodes (int):           Number of modes in tensor
+    #                   reg (real):             Regularization param
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_form_gram(neq_matrix, aTa, mode, nmodes, reg)
+    {
+        /* nfactors */
+        var N = aTa[0].J;
+
+        /* 
+            form upper triangual normal equations. We are ignoring
+            the regularization parameter, so this loop is simplified
+        */
+        var neqs = neq_matrix.vals;
+        var b = new Barrier(numThreads_g);
+        coforall tid in 0..numThreads_g-1 {
+            /* first initialize with 1s */
+            forall (i,j) in neqs.domain {
+                neqs(i,j) = 1.0;
+            }
+            /* now Hadamard product of all aTa matrices */
+            for m in 0..nmodes-1 {
+                if m == mode {
+                    continue;
+                }
+
+                var mat = aTa[m].vals;
+                forall i in 0..N-1 {
+                    /* mat is symmetric but stored upper right triangular */
+                    /* copy upper triangle */
+                    for j in i..N-1 {
+                        neqs[i,j] *= mat[i,j];
+                    }
+                }
+            } /* for each mode */
+
+            b.barrier();
+            /* now copy lower triangle */
+            forall i in 0..N-1 {
+                for j in 0..i-1 {
+                    neqs[i,j] = neqs[i,j];
+                }
+            }
+        } /* coforall */
     }
 
     /*****************************
@@ -63,4 +122,42 @@ module Matrices {
         syrk(A.vals, ret.vals, alpha, beta, uplo, trans, order);
         timers_g.timers["MAT A^TA"].stop();
     }
+
+    /*########################################################################
+    #   Descriptipn:    Calculates (BtB * CtC *...)^-1 where * is the Hadamard
+    #                   product. This is the Gram matrix of the CPD.
+    #
+    #   Parameters:     mode (int): Which mode we are operating on
+    #                   nmodes (int):   Number of modes in tensor
+    #                   aTa (dense_matrix[]):   Array of matrices that contains
+    #                                           BtB, CtC, etc.
+    #                   rhs (dense_matrix);     Factor matrix for this mode
+    #                   reg (real):             Regularization value
+    #
+    #   Return:         None
+    ########################################################################*/
+    proc mat_solve_normals(mode, nmodes, aTa, rhs, reg)
+    {
+        timers_g.timers["INVERSE"].start();
+
+        p_form_gram(aTa[nmodes], aTa, mode, nmodes, reg);
+        writeln("After p_form_gram:\n");
+        writeln(aTa[nmodes].vals);
+        exit(-1);
+    
+        var uplo = "U"; 
+        var neqs = aTa[nmodes].vals;
+
+        /* Cholesky factorization */
+        // SPLATT uses uplo=U
+        potrf(lapack_memory_order.row_major, uplo, neqs);
+        
+        // Solve against RHS 
+        potrs(lapack_memory_order.row_major, uplo, neqs, rhs.vals);
+
+        timers_g.timers["INVERSE"].stop();
+    }
+
+
+
 }

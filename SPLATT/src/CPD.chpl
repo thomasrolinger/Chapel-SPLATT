@@ -154,12 +154,14 @@ module CPD {
                 timers_g.timers["MTTKRP"].stop();
 
                 par_memcpy(mats[m].vals_ref, m1.vals_ref, m1.I * nfactors);
-                writeln("mats[", m, "]:");
+                mat_solve_normals(m, nmodes, aTa, mats[m], args.regularization);
+
+                /*writeln("mats[", m, "]:");
                 for x in 0..9 {
                     write(mats[m].vals[0,x], " ");
                 }
                 writeln("");
-                exit(-1);
+                exit(-1);*/
             }
             itertime.stop();
         }
