@@ -89,6 +89,52 @@ module Matrices {
         }
     }
 
+    /*########################################################################
+    #   Descriptipn:    Calculates 2-norm
+    #
+    #   Parameters:     Stuff
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_mat_2norm(A, lambda_vals, thds)
+    {
+        var I = A.I;
+        var J = A.J;
+        ref vals = A.vals;
+
+        var b = new Barrier();
+        coforall tid in 0..numThreads_g-1 {
+            ref mylambda = thds[tid].scratch[0].buf;
+            for j in 0..J-1 {
+                 mylambda[j] = 0;
+            }
+
+            forall (i,j) in A.domain {
+                mylambda[j] += vals(i,j) * vals(i,j);
+            }
+            
+            // reduction on partial sums
+            //TODO: implement
+            //thd_reduce(thds, 0, J, REDUCE_SUM);
+
+            if tid == 0 {
+                lambda_vals = mylambda[0..J-1];
+            }
+
+            b.barrier();
+
+            /*forall j in 0..J-1 {
+                lambda[j] = sqrt(lambda[j]);
+            }*/
+            lambda_vals = sqrt(lambda_vals);
+
+            /* do the normalization */
+            forall (i,j) in A.domain {
+                vals(i,j) /= lambda_vals[j];
+            }
+        } /* end coforall */
+    }
+
     /*****************************
     *
     *   Public Functions
@@ -143,25 +189,38 @@ module Matrices {
         var neqs = aTa[nmodes].vals;
 
         /* Cholesky factorization */
-        // SPLATT uses uplo=U
         potrf(lapack_memory_order.row_major, uplo, neqs);
         
         // Solve against RHS 
         potrs(lapack_memory_order.row_major, uplo, neqs, rhs.vals);
-    
-        writeln("After potrs:");
-        for i in 0..34 {
-            for j in 0..34 {
-                writef("%dr ", rhs.vals[i,j]);
-            }
-            writeln("");
-        }
-        exit(-1);
 
         timers_g.timers["INVERSE"].stop();
-
     }
-
-
+    
+    /*########################################################################
+    #   Descriptipn:    Normalize the columns of A and return the norms in
+    #                   lambda_vals. Supported norms are 2-norm and max-norm
+    #
+    #   Parameters:     A (dense_matrix):       The matrix to normalize
+    #                   lambda_vals (reals[]:   Vector of columns norms
+    #                   which (int):            Which norm to use
+    #
+    #   Return:         None
+    ########################################################################*/
+    proc mat_normalize(A, lambda_vals, which, thds)
+    {
+        timers_g.timers["MAT_NORM"].start();
+        select (which) {
+            when MAT_NORM_2 {
+                //TODO: Implement
+                p_mat_2norm(A, lambda_vals, thds);
+            }
+            when MAT_NORM_MAX {
+                //TODO: Implement
+                p_mat_maxnorm(A, lambda_vals, thds);
+            }
+        }
+        timers_g.timers["MAT_NORM"].stop();
+    }
 
 }
