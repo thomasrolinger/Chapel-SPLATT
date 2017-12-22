@@ -12,6 +12,7 @@ module Matrices {
     use BLAS;
     use LAPACK;
     use Barriers;
+    use IO.FormattedIO;
 
     /*****************************
     *
@@ -59,37 +60,33 @@ module Matrices {
             form upper triangual normal equations. We are ignoring
             the regularization parameter, so this loop is simplified
         */
-        var neqs = neq_matrix.vals;
-        var b = new Barrier(numThreads_g);
-        coforall tid in 0..numThreads_g-1 {
-            /* first initialize with 1s */
-            forall (i,j) in neqs.domain {
-                neqs(i,j) = 1.0;
+        ref neqs = neq_matrix.vals;
+            
+        /* first initialize with 1s */
+        forall (i,j) in neqs.domain {
+            neqs(i,j) = 1.0;
+        }
+        /* now Hadamard product of all aTa matrices */
+        for m in 0..nmodes-1 {
+            if m == mode {
+                continue;
             }
-            /* now Hadamard product of all aTa matrices */
-            for m in 0..nmodes-1 {
-                if m == mode {
-                    continue;
-                }
-
-                var mat = aTa[m].vals;
-                forall i in 0..N-1 {
-                    /* mat is symmetric but stored upper right triangular */
-                    /* copy upper triangle */
-                    for j in i..N-1 {
-                        neqs[i,j] *= mat[i,j];
-                    }
-                }
-            } /* for each mode */
-
-            b.barrier();
-            /* now copy lower triangle */
+            var mat = aTa[m].vals;
             forall i in 0..N-1 {
-                for j in 0..i-1 {
-                    neqs[i,j] = neqs[i,j];
+                /* mat is symmetric but stored upper right triangular */
+                /* copy upper triangle */
+                for j in i..N-1 {
+                    neqs[i,j] *= mat[i,j];
                 }
             }
-        } /* coforall */
+        } /* for each mode */
+
+        /* now copy lower triangle */
+        forall i in 0..N-1 {
+            for j in 0..i-1 {
+                neqs[i,j] = neqs[j,i];
+            }
+        }
     }
 
     /*****************************
@@ -141,9 +138,6 @@ module Matrices {
         timers_g.timers["INVERSE"].start();
 
         p_form_gram(aTa[nmodes], aTa, mode, nmodes, reg);
-        writeln("After p_form_gram:\n");
-        writeln(aTa[nmodes].vals);
-        exit(-1);
     
         var uplo = "U"; 
         var neqs = aTa[nmodes].vals;
@@ -154,8 +148,18 @@ module Matrices {
         
         // Solve against RHS 
         potrs(lapack_memory_order.row_major, uplo, neqs, rhs.vals);
+    
+        writeln("After potrs:");
+        for i in 0..34 {
+            for j in 0..34 {
+                writef("%dr ", rhs.vals[i,j]);
+            }
+            writeln("");
+        }
+        exit(-1);
 
         timers_g.timers["INVERSE"].stop();
+
     }
 
 

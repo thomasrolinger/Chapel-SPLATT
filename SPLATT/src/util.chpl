@@ -11,6 +11,9 @@ module Util {
     use IO.FormattedIO;
     use Kruskal;
     use Random;
+
+    config var osType = "LINUX";
+
     /* 
         Takes a value (number of bytes) and produces a printable
         string that represents the size (i.e. B, KB, MB, etc.)
@@ -50,14 +53,15 @@ module Util {
             code, we will read in the matrix values from a file for now. 
         */
         var fin : file;
+        var matDir = "../factMats/" + osType;
         if m == 0 {
-            fin = open("../factMats_A.txt", iomode.r);
+            fin = open(matDir + "/factMats_A.txt", iomode.r);
         }
         else if m == 1 {
-            fin = open("../factMats_B.txt", iomode.r);
+            fin = open(matDir + "/factMats_B.txt", iomode.r);
         }
         else {
-            fin = open("../factMats_C.txt", iomode.r);
+            fin = open(matDir + "/factMats_C.txt", iomode.r);
         }
         var reader = fin.reader();
         reader.read(mat.vals);
