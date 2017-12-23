@@ -109,13 +109,19 @@ module Matrices {
                  mylambda[j] = 0;
             }
 
-            forall (i,j) in A.domain {
+            forall (i,j) in vals.domain {
                 mylambda[j] += vals(i,j) * vals(i,j);
             }
             
             // reduction on partial sums
-            //TODO: implement
-            //thd_reduce(thds, 0, J, REDUCE_SUM);
+            //TEST
+            mylambda = tid+2;
+            thd_reduce(thds, 0, J, tid, b, REDUCE_SUM);
+            if tid == 0 {
+                writeln(mylambda);
+            }
+            b.barrier();
+            exit(-1);
 
             if tid == 0 {
                 lambda_vals = mylambda[0..J-1];
@@ -129,7 +135,7 @@ module Matrices {
             lambda_vals = sqrt(lambda_vals);
 
             /* do the normalization */
-            forall (i,j) in A.domain {
+            forall (i,j) in vals.domain {
                 vals(i,j) /= lambda_vals[j];
             }
         } /* end coforall */
@@ -217,7 +223,7 @@ module Matrices {
             }
             when MAT_NORM_MAX {
                 //TODO: Implement
-                p_mat_maxnorm(A, lambda_vals, thds);
+                //p_mat_maxnorm(A, lambda_vals, thds);
             }
         }
         timers_g.timers["MAT_NORM"].stop();

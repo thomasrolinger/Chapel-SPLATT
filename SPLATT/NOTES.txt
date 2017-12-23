@@ -1,3 +1,9 @@
+Why is passing a barrier into another function (in a different module) not working?
+
+
+Look for places with direct array assignment and see if we can replace with ref,
+as a direct assignment makes a copy of the array
+
 Change all loops to use domains, if possible. This is supposed to speed-up the runtime bounds checking
 
 Change memcpy calls, if possible, to use direct array assignment.
@@ -6,3 +12,5 @@ Look for places to use slicing instead of loops when doing assignment
 
 Do entire-array operations work in parallel automatically? As in, does sqrt(A) perform the sqrt() function
 on each element of A in parallel?
+
+Built in way to reduce matrix columns in Chapel (in parallel)?

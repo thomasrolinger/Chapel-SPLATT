@@ -7,6 +7,9 @@
 */
 
 module ThreadInfo {
+    use Base;
+    use Barriers;
+
     /*****************************
     *
     *   scratch_buf class
@@ -27,6 +30,56 @@ module ThreadInfo {
         // are reals
         var nscratch : int;
         var scratch : [0..nscratch-1] scratch_buf;
+    }
+
+    /*****************************
+    *
+    *   Private Functions
+    *
+    ******************************/
+    
+    /*########################################################################
+    #   Descriptipn:    Performs a parallel sum reduction
+    #
+    #   Parameters:     Stuff
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_reduce_sum(thds, scratchid, nelems, tid, b)
+    {
+        ref myvals = thds[tid].scratch[scratchid].buf;
+        
+        var half = numThreads_g/2;
+        while half > 0 {
+            if tid < half && tid + half < numThreads_g {
+                ref target = thds[tid+half].scratch[scratchid].buf;
+                for i in 0..nelems-1 {
+                    myvals[i] += target[i];
+                }
+            }
+            b.barrier();
+            if tid == 0 {
+                /* check for odd number */
+                if half > 1 && half % 2 == 1 {
+                    ref last = thds[half-1].scratch[scratchid].buf;
+                    for i in 0..nelems-1 {
+                        myvals[i] += last[i];
+                    }
+                }
+            }
+            /* next iteration */
+            half /= 2;
+        }
+        /* account for odd thread at end */
+        if tid == 0 {
+            if numThreads_g % 2 == 1 {
+                ref last = thds[numThreads_g-1].scratch[scratchid].buf;
+                for i in 0..nelems-1 {
+                    myvals[i] += last[i];
+                }
+            }
+        }
+        b.barrier();
     }
 
     /*****************************
@@ -63,4 +116,29 @@ module ThreadInfo {
         }
         return thds;
     }
+
+    /*########################################################################
+    #   Descriptipn:    Performs a reduction 
+    #
+    #   Parameters:     Stuff
+    #
+    #   Return:         None
+    ########################################################################*/
+    proc thd_reduce(thds, scratchid, nelems, tid, b, which)
+    {
+        if numThreads_g == 1 {
+            return;
+        }
+        b.barrier();
+        select which {
+            when REDUCE_SUM {
+                p_reduce_sum(thds, scratchid, nelems, tid, b);
+            }
+            when REDUCE_MAX {
+                //TODO: Implement
+                //p_reduce_max(thds, scratchid, nelems, tid, b);
+            }
+        }
+    }
+
 }

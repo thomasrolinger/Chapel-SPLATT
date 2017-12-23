@@ -39,6 +39,8 @@ module Base {
     const DEFAULT_LOCK_PAD : int = 8; // this is 8*8 bytes = 64 bytes. Used to prevent false sharing
     const MAT_NORM_2 : int = 0;
     const MAT_NORM_MAX : int = 1;
+    const REDUCE_SUM : int = 0;
+    const REDUCE_MAX : int = 1;
 
     // Global "numThreads" so we don't have to pass it around all the time.
     // We set this once we parse the args
