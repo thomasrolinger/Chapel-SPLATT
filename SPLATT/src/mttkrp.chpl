@@ -838,9 +838,9 @@ module MTTKRP {
         var nmodes = tensors[0].nmodes;
 
         /* Clear output matrix */
-        var M = mats[nmodes];
+        ref M = mats[nmodes];
         M.I = tensors[0].dims[mode];
-        M. matrix_domain = {0..M.I-1, 0..M.J-1};
+        M.matrix_domain = {0..M.I-1, 0..M.J-1};
         M.vals = 0;
 
         /* Choose which MTTKRP function to use */

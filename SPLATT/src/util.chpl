@@ -83,7 +83,7 @@ module Util {
             var n_per_thread = (numElems + numThreads_g -1) / numThreads_g;
             var n_begin = min(n_per_thread * tid, numElems);
             var n_end = min(n_begin + n_per_thread, numElems);
-            c_memcpy(dst+n_begin, src+n_begin, n_end-n_begin);
+            c_memcpy(dst+n_begin, src+n_begin, (n_end-n_begin)*8);
         }
     }
 }

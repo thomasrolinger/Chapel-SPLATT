@@ -159,6 +159,9 @@ module CPD {
                 //TODO: Implement mat_normalize
                 if it == 0 {
                     mat_normalize(mats[m], lambda_vals, MAT_NORM_2, thds);
+                    writeln("After mat_normalize:");
+                    writeln(lambda_vals);
+                    exit(-1);
                 }
                 else {
                     mat_normalize(mats[m], lambda_vals, MAT_NORM_MAX, thds);

@@ -11,6 +11,7 @@ module Matrices {
     use Base;
     use BLAS;
     use LAPACK;
+    use ClassicLAPACK;
     use Barriers;
     use IO.FormattedIO;
 
@@ -102,43 +103,32 @@ module Matrices {
         var J = A.J;
         ref vals = A.vals;
 
-        var b = new Barrier();
-        coforall tid in 0..numThreads_g-1 {
-            ref mylambda = thds[tid].scratch[0].buf;
-            for j in 0..J-1 {
-                 mylambda[j] = 0;
-            }
+        for j in 0..J-1 {
+            lambda_vals[j] = 0;
+        }
 
-            forall (i,j) in vals.domain {
-                mylambda[j] += vals(i,j) * vals(i,j);
-            }
+        /*
+            mylambda[j] will contain the sum of the square of all the values
+            in the j-th column of vals
+        */
+        forall j in 0..J-1 {
+            lambda_vals[j] = (+ reduce vals[0..I-1, j]**2);
+        }
             
-            // reduction on partial sums
-            //TEST
-            mylambda = tid+2;
-            thd_reduce(thds, 0, J, tid, b, REDUCE_SUM);
-            if tid == 0 {
-                writeln(mylambda);
-            }
-            b.barrier();
-            exit(-1);
+        // reduction on partial sums
+        //thd_reduce(thds, 0, J, tid, b, REDUCE_SUM);
 
-            if tid == 0 {
-                lambda_vals = mylambda[0..J-1];
-            }
+        //lambda_vals = mylambda[0..J-1];
 
-            b.barrier();
+        forall j in 0..J-1 {
+            lambda_vals[j] = sqrt(lambda_vals[j]);
+        }
+        //TODO: Does sqrt() work in parallel?
 
-            /*forall j in 0..J-1 {
-                lambda[j] = sqrt(lambda[j]);
-            }*/
-            lambda_vals = sqrt(lambda_vals);
-
-            /* do the normalization */
-            forall (i,j) in vals.domain {
-                vals(i,j) /= lambda_vals[j];
-            }
-        } /* end coforall */
+        /* do the normalization */
+        forall (i,j) in vals.domain {
+            vals(i,j) /= lambda_vals[j];
+        }
     }
 
     /*****************************
@@ -198,8 +188,23 @@ module Matrices {
         potrf(lapack_memory_order.row_major, uplo, neqs);
         
         // Solve against RHS 
-        potrs(lapack_memory_order.row_major, uplo, neqs, rhs.vals);
 
+        /*
+          Not quite sure what's going on here. The standard defintion for potrs says
+          that nrhs is equal to the number of columns in BX (i.e. rhs.vals). However,
+          SPLATT sets nrhs to be the number of rows in BX. By using the built-in Chapel
+          wrapper for potrs, we only solve the first N equations, where N is the number of
+          columns in rhs.vals (i.e. number of factors). Furthermore, SPLATT sets ldb to be
+          N. However, the only way I can get the same results as SPLATT is by calling the LAPACKE
+          dpotrs function directly and setting nrhs to the number of rows in BX and setting ldb
+          to the number of rows in BX. I am not sure why this is so different from what SPLATT
+          is doing, since it is also directly calling LAPACK.
+        */
+        var N: c_int = neqs.domain.dim(1).size : c_int;
+        var nrhs : c_int = rhs.vals.domain.dim(1).size : c_int;
+        var lda : c_int = neqs.domain.dim(2).size : c_int;
+        var ldb : c_int = rhs.vals.domain.dim(1).size : c_int;
+        LAPACKE_dpotrs(lapack_memory_order.row_major, uplo, N, nrhs, neqs, lda, rhs.vals, ldb);
         timers_g.timers["INVERSE"].stop();
     }
     
