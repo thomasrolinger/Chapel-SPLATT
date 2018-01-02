@@ -190,9 +190,9 @@ module Matrices {
         timers_g.timers["INVERSE"].start();
 
         p_form_gram(aTa[nmodes], aTa, mode, nmodes, reg);
-    
+        
         var uplo = "U"; 
-        var neqs = aTa[nmodes].vals;
+        ref neqs = aTa[nmodes].vals;
 
         /* Cholesky factorization */
         potrf(lapack_memory_order.row_major, uplo, neqs);
