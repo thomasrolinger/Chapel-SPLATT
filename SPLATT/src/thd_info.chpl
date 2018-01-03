@@ -89,7 +89,7 @@ module ThreadInfo {
     #
     #   Return:         None
     ########################################################################*/
-    private proc p_reduce_sum(thds, scratchid, nelems, tid, b)
+    private proc p_reduce_max(thds, scratchid, nelems, tid, b)
     {
         ref myvals = thds[tid].scratch[scratchid].buf;
 

@@ -61,7 +61,7 @@ module MutexPool {
     }
 
     /*########################################################################
-    #   Descriptipn:    Convert an arbitrary integer ID to a lock ID in a
+    #   Description:    Convert an arbitrary integer ID to a lock ID in a
     #                   mutex pool.
     #
     #   Parameters:     id (int):           An abitrary integer ID (i.e. matrix row).
@@ -76,7 +76,7 @@ module MutexPool {
     }
 
     /*########################################################################
-    #   Descriptipn:    Claim a lock of a mutex pool. The lock is identified
+    #   Description:    Claim a lock of a mutex pool. The lock is identified
     #                   with an ID, which is an arbitrary integer which 
     #                   uniquely identifies the memory to protect. The ID
     #                   is then translated into an actual lock based on
@@ -93,11 +93,16 @@ module MutexPool {
         // sets the sync var to empty and means no other task will be able
         // to "set the lock" until I unset it (i.e. write to it).
         var lock_id = mutex_translate_id(id, pool.num_locks, pool.pad_size);
+        if !pool.locks[lock_id].isFull {
+            writeln("Lock ", lock_id, " is empty, but it shouldn't be!");
+        }
+        //writeln("\tSetting lock: ", lock_id);
         var temp = pool.locks[lock_id];
+        //pool.locks[lock_id].reset();
     }
 
     /*########################################################################
-    #   Descriptipn:    Release a lock set with mutex_set_lock()
+    #   Description:    Release a lock set with mutex_set_lock()
     #
     #   Parameters:     pool (mutex_pool):  The pool containing the lock
     #                   id (int):           Lock ID
@@ -108,6 +113,10 @@ module MutexPool {
     {
         // To unset the lock, we write to it. This sets it from empty to full.
         var lock_id = mutex_translate_id(id, pool.num_locks, pool.pad_size);
+        //writeln("\tReleasing lock: ", lock_id);
+        if pool.locks[lock_id].isFull {
+            writeln("Lock ", lock_id, " is full, but it shouldn't be!");
+        }
         pool.locks[lock_id] = 1;
     }
 }

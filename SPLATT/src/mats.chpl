@@ -62,30 +62,42 @@ module Matrices {
             the regularization parameter, so this loop is simplified
         */
         ref neqs = neq_matrix.vals;
-            
-        /* first initialize with 1s */
-        forall (i,j) in neqs.domain {
-            neqs(i,j) = 1.0;
-        }
-        /* now Hadamard product of all aTa matrices */
-        for m in 0..nmodes-1 {
-            if m == mode {
-                continue;
-            }
-            var mat = aTa[m].vals;
-            forall i in 0..N-1 {
-                /* mat is symmetric but stored upper right triangular */
-                /* copy upper triangle */
-                for j in i..N-1 {
-                    neqs[i,j] *= mat[i,j];
+          
+        var b = new Barrier(numThreads_g-1);
+
+        coforall tid in 0..numThreads_g-1 {
+            /* first initialize with 1s */
+            var I_per_thread = (N + numThreads_g - 1) / numThreads_g;
+            var I_begin = min(I_per_thread * tid, N);
+            var I_end = min(I_begin + I_per_thread, N);
+            for i in I_begin..I_end-1 {
+                for j in 0..N-1 {
+                    neqs(i,j) = 1.0;
                 }
             }
-        } /* for each mode */
+            /* now Hadamard product of all aTa matrices */
+            for m in 0..nmodes-1 {
+                if m == mode {
+                    continue;
+                }
+                ref mat = aTa[m].vals;
+                for i in I_begin..I_end-1 {
+                    /* mat is symmetric but stored upper right triangular */
+                    /* copy upper triangle */
+                    for j in i..N-1 {
+                        neqs[i,j] *= mat[i,j];
+                    }
+                }
+            } /* for each mode */
 
-        /* now copy lower triangle */
-        forall i in 0..N-1 {
-            for j in 0..i-1 {
-                neqs[i,j] = neqs[j,i];
+            b.barrier();
+
+            /* now copy lower triangle */
+            //for i in 0..N-1 {
+            for i in I_begin..I_end-1 {
+                for j in 0..i-1 {
+                    neqs[i,j] = neqs[j,i];
+                }
             }
         }
     }
@@ -106,6 +118,7 @@ module Matrices {
         var b = new Barrier(numThreads_g);
 
         coforall tid in 0..numThreads_g-1 {
+        //var tid = 0;
             ref mylambda = thds[tid].scratch[0].buf;
             for j in 0..J-1 {
                 mylambda[j] = 0;
@@ -131,7 +144,7 @@ module Matrices {
                     mylambda[j] += vals(i,j) * vals(i,j);
                 }
             }
-            
+           
             // reduction on partial sums
             thd_reduce(thds, 0, J, tid, b, REDUCE_SUM);
             
@@ -271,7 +284,7 @@ module Matrices {
 
         /* Cholesky factorization */
         potrf(lapack_memory_order.row_major, uplo, neqs);
-        
+
         // Solve against RHS 
 
         /*
@@ -290,6 +303,7 @@ module Matrices {
         var lda : c_int = neqs.domain.dim(2).size : c_int;
         var ldb : c_int = rhs.vals.domain.dim(1).size : c_int;
         LAPACKE_dpotrs(lapack_memory_order.row_major, uplo, N, nrhs, neqs, lda, rhs.vals, ldb);
+
         timers_g.timers["INVERSE"].stop();
     }
     

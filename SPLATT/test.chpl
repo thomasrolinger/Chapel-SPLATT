@@ -106,28 +106,9 @@ for i in 0..2 {
     }
 }*/
 
+var c : real = 1.0/0;
 
-var d : domain(2) = {0..2,0..3};
-
-var arr : [d] int;
-
-for (i,j) in arr.domain {
-  arr(i,j) = i*j;
+if isnan(c) {
+    writeln("nan!");
 }
-
-writeln(arr);
-
-var res : [0..3] int;
-
-for j in 0..3 {
-  res[j] = (+ reduce arr[0..2,j] ** 2);
-}
-
-writeln("");
-writeln(res);
-
-
-
-
-
 
