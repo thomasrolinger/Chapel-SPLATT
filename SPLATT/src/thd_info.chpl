@@ -39,7 +39,7 @@ module ThreadInfo {
     ******************************/
     
     /*########################################################################
-    #   Descriptipn:    Performs a parallel sum reduction
+    #   Description:    Performs a parallel sum reduction
     #
     #   Parameters:     Stuff
     #
@@ -82,6 +82,50 @@ module ThreadInfo {
         b.barrier();
     }
 
+    /*########################################################################
+    #   Description:    Performs a parallel max reduction
+    #
+    #   Parameters:     Stuff
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_reduce_sum(thds, scratchid, nelems, tid, b)
+    {
+        ref myvals = thds[tid].scratch[scratchid].buf;
+
+        var half = numThreads_g/2;
+        while half > 0 {
+            if tid < half && tid + half < numThreads_g {
+                ref target = thds[tid+half].scratch[scratchid].buf;
+                for i in 0..nelems-1 {
+                    myvals[i] = max(myvals[i], target[i]);
+                }
+            }
+            b.barrier();
+            if tid == 0 {
+                /* check for odd number */
+                if half > 1 && half % 2 == 1 {
+                    ref last = thds[half-1].scratch[scratchid].buf;
+                    for i in 0..nelems-1 {
+                        myvals[i] = max(myvals[i], last[i]);
+                    }
+                }
+            }
+            /* next iteration */
+            half /= 2;
+        }
+        /* account for odd thread at end */
+        if tid == 0 {
+            if numThreads_g % 2 == 1 {
+                ref last = thds[numThreads_g-1].scratch[scratchid].buf;
+                for i in 0..nelems-1 {
+                    myvals[i] = max(myvals[i], last[i]);
+                }
+            }
+        }
+        b.barrier();
+    }
+
     /*****************************
     *
     *   Public Functions
@@ -89,7 +133,7 @@ module ThreadInfo {
     ******************************/
 
     /*########################################################################
-    #   Descriptipn:    Allocate and initialize a number of thd_info classes
+    #   Description:    Allocate and initialize a number of thd_info classes
     #
     #   Parameters:     nthreads:   Number of threads to allocate for
     #                   nscratch:   Number of scratch arrays to use
@@ -118,7 +162,7 @@ module ThreadInfo {
     }
 
     /*########################################################################
-    #   Descriptipn:    Performs a reduction 
+    #   Description:    Performs a reduction 
     #
     #   Parameters:     Stuff
     #
@@ -135,8 +179,7 @@ module ThreadInfo {
                 p_reduce_sum(thds, scratchid, nelems, tid, b);
             }
             when REDUCE_MAX {
-                //TODO: Implement
-                //p_reduce_max(thds, scratchid, nelems, tid, b);
+                p_reduce_max(thds, scratchid, nelems, tid, b);
             }
         }
     }

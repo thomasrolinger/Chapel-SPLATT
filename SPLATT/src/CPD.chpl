@@ -156,16 +156,20 @@ module CPD {
                 par_memcpy(mats[m].vals_ref, m1.vals_ref, m1.I * nfactors);
                 mat_solve_normals(m, nmodes, aTa, mats[m], args.regularization);
 
-                //TODO: Implement mat_normalize
                 if it == 0 {
                     mat_normalize(mats[m], lambda_vals, MAT_NORM_2, thds);
-                    writeln("After mat_normalize:");
-                    writeln(lambda_vals);
-                    exit(-1);
                 }
                 else {
                     mat_normalize(mats[m], lambda_vals, MAT_NORM_MAX, thds);
                 }
+                /*writeln("A after normalization:");
+                for i in 0..5 {
+                    for j in 0..mats[m].J-1 {
+                        write(mats[m].vals(i,j), " ");
+                    }
+                    writeln("");
+                }
+                exit(-1);*/
 
             }
             itertime.stop();

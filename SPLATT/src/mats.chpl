@@ -114,12 +114,7 @@ module Matrices {
             /*
                 mylambda[j] will contain the sum of the square of all the values
                 in the j-th column of vals
-            */
-            /*forall j in 0..J-1 {
-                lambda_vals[j] = (+ reduce vals[0..I-1, j]**2);
-            }*/
-
-            /*
+                
                 With OMP, the coforall is a parallel section and this for-loop is just a
                 omp for. The way it works is that each thread executes the statements within
                 the parallel section and then the omp for iterations are divided amongst those
@@ -154,6 +149,63 @@ module Matrices {
                 lambda_vals[j] = sqrt(lambda_vals[j]);
             }   
             //TODO: Does sqrt() work in parallel?
+
+            /* do the normalization */
+            for i in I_begin..I_end-1 {
+                for j in 0..J-1 {
+                    vals(i,j) /= lambda_vals[j];
+                }
+            }
+        }
+    }
+
+    /*########################################################################
+    #   Description:    Calculates max-norm
+    #
+    #   Parameters:     Stuff
+    #
+    #   Return:         None
+    ########################################################################*/
+    private proc p_mat_maxnorm(A, lambda_vals, thds)
+    {
+        var I = A.I;
+        var J = A.J;
+        ref vals = A.vals;
+
+        var b = new Barrier(numThreads_g);
+
+        coforall tid in 0..numThreads_g-1 {
+            ref mylambda = thds[tid].scratch[0].buf;
+            for j in 0..J-1 {
+                mylambda[j] = 0;
+            }
+
+            // Divide up the outer loop iterations (rows)
+            var I_per_thread = (I + numThreads_g - 1) / numThreads_g;
+            var I_begin = min(I_per_thread * tid, I);
+            var I_end = min(I_begin + I_per_thread, I);
+            for i in I_begin..I_end-1 {
+                for j in 0..J-1 {
+                    mylambda[j] = max(mylambda[j], vals(i,j));
+                }
+            }
+
+            // reduction on partial maxes
+            thd_reduce(thds, 0, J, tid, b, REDUCE_MAX);
+    
+            if tid == 0 {
+                lambda_vals = mylambda[0..J-1];
+            }
+
+            b.barrier();
+
+            // Divide up J amongst threads
+            var J_per_thread = (J + numThreads_g - 1) / numThreads_g;
+            var J_begin = min(J_per_thread * tid, J);
+            var J_end = min(J_begin + J_per_thread, J);
+            for j in J_begin..J_end-1 {
+                lambda_vals[j] = max(lambda_vals[j], 1.0);
+            }
 
             /* do the normalization */
             for i in I_begin..I_end-1 {
@@ -256,12 +308,10 @@ module Matrices {
         timers_g.timers["MAT_NORM"].start();
         select (which) {
             when MAT_NORM_2 {
-                //TODO: Implement
                 p_mat_2norm(A, lambda_vals, thds);
             }
             when MAT_NORM_MAX {
-                //TODO: Implement
-                //p_mat_maxnorm(A, lambda_vals, thds);
+                p_mat_maxnorm(A, lambda_vals, thds);
             }
         }
         timers_g.timers["MAT_NORM"].stop();
