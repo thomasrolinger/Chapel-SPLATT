@@ -42,7 +42,7 @@ module Matrices {
     *
     ******************************/
     /*########################################################################
-    #   Descriptipn:    Form the Gram matrix from A^T * A
+    #   Description:    Form the Gram matrix from A^T * A
     #
     #   Parameters:     neq_matrix (real[]):    The matrix to fill
     #                   aTa (dense_matrix[]):   Individual Gram matrices
@@ -91,7 +91,7 @@ module Matrices {
     }
 
     /*########################################################################
-    #   Descriptipn:    Calculates 2-norm
+    #   Description:    Calculates 2-norm
     #
     #   Parameters:     Stuff
     #
@@ -103,31 +103,64 @@ module Matrices {
         var J = A.J;
         ref vals = A.vals;
 
-        for j in 0..J-1 {
-            lambda_vals[j] = 0;
-        }
+        var b = new Barrier(numThreads_g);
 
-        /*
-            mylambda[j] will contain the sum of the square of all the values
-            in the j-th column of vals
-        */
-        forall j in 0..J-1 {
-            lambda_vals[j] = (+ reduce vals[0..I-1, j]**2);
-        }
+        coforall tid in 0..numThreads_g-1 {
+            ref mylambda = thds[tid].scratch[0].buf;
+            for j in 0..J-1 {
+                mylambda[j] = 0;
+            }   
+
+            /*
+                mylambda[j] will contain the sum of the square of all the values
+                in the j-th column of vals
+            */
+            /*forall j in 0..J-1 {
+                lambda_vals[j] = (+ reduce vals[0..I-1, j]**2);
+            }*/
+
+            /*
+                With OMP, the coforall is a parallel section and this for-loop is just a
+                omp for. The way it works is that each thread executes the statements within
+                the parallel section and then the omp for iterations are divided amongst those
+                threads. However in Chapel, it appears that the forall is NOT using the same pool
+                of threads that were "created" by the coforall. Therefore, we must manually divide
+                up the for loop iterations based on the TIDs.
+            */
+            // Divide up the outer loop iterations (rows)
+            var I_per_thread = (I + numThreads_g - 1) / numThreads_g;
+            var I_begin = min(I_per_thread * tid, I);
+            var I_end = min(I_begin + I_per_thread, I);
+            for i in I_begin..I_end-1 {
+                for j in 0..J-1 {
+                    mylambda[j] += vals(i,j) * vals(i,j);
+                }
+            }
             
-        // reduction on partial sums
-        //thd_reduce(thds, 0, J, tid, b, REDUCE_SUM);
+            // reduction on partial sums
+            thd_reduce(thds, 0, J, tid, b, REDUCE_SUM);
+            
+            if tid == 0 {
+                lambda_vals = mylambda[0..J-1];
+            }
+        
+            b.barrier();
 
-        //lambda_vals = mylambda[0..J-1];
+            // Divide up J amongst threads
+            var J_per_thread = (J + numThreads_g - 1) / numThreads_g;
+            var J_begin = min(J_per_thread * tid, J);
+            var J_end = min(J_begin + J_per_thread, J);
+            for j in J_begin..J_end-1 {
+                lambda_vals[j] = sqrt(lambda_vals[j]);
+            }   
+            //TODO: Does sqrt() work in parallel?
 
-        forall j in 0..J-1 {
-            lambda_vals[j] = sqrt(lambda_vals[j]);
-        }
-        //TODO: Does sqrt() work in parallel?
-
-        /* do the normalization */
-        forall (i,j) in vals.domain {
-            vals(i,j) /= lambda_vals[j];
+            /* do the normalization */
+            for i in I_begin..I_end-1 {
+                for j in 0..J-1 {
+                    vals(i,j) /= lambda_vals[j];
+                }
+            }
         }
     }
 
@@ -137,7 +170,7 @@ module Matrices {
     *
     ******************************/
     /*########################################################################
-    #   Descriptipn:    Computes A^T*A via BLAS syrk
+    #   Description:    Computes A^T*A via BLAS syrk
     #
     #   Parameters:     A (dense_matrix):   The matrix to operate on
     #                   ret (dense_matrix): The matrix to store the result in
@@ -163,7 +196,7 @@ module Matrices {
     }
 
     /*########################################################################
-    #   Descriptipn:    Calculates (BtB * CtC *...)^-1 where * is the Hadamard
+    #   Description:    Calculates (BtB * CtC *...)^-1 where * is the Hadamard
     #                   product. This is the Gram matrix of the CPD.
     #
     #   Parameters:     mode (int): Which mode we are operating on
@@ -209,7 +242,7 @@ module Matrices {
     }
     
     /*########################################################################
-    #   Descriptipn:    Normalize the columns of A and return the norms in
+    #   Description:    Normalize the columns of A and return the norms in
     #                   lambda_vals. Supported norms are 2-norm and max-norm
     #
     #   Parameters:     A (dense_matrix):       The matrix to normalize
