@@ -153,6 +153,14 @@ module CPD {
                 mttkrp_csf(tensors, mats, m, thds, mttkrp_ws, args);
                 timers_g.timers["MTTKRP"].stop();
 
+                /*writeln("M1 after MTTKRP:");
+                for i in 0..4 {
+                    for j in 0..m1.J-1 {
+                        write(m1.vals_ref[(i*m1.J)+j], " ");
+                    }
+                    writeln("");
+                }*/
+
                 par_memcpy(mats[m].vals_ref, m1.vals_ref, m1.I * nfactors);
                 mat_solve_normals(m, nmodes, aTa, mats[m], args.regularization);
 
@@ -162,7 +170,7 @@ module CPD {
                 else {
                     mat_normalize(mats[m], lambda_vals, MAT_NORM_MAX, thds);
                 }
-                    writeln("A after normalization:");
+                   /* writeln("A after normalization:");
                     for i in 0..5 {
                         for j in 0..mats[m].J-1 {
                             write(mats[m].vals(i,j), " ");
@@ -171,7 +179,7 @@ module CPD {
                     }
                 writeln("");
                 writeln("");
-                writeln("");
+                writeln("");*/
                 
                 // Update A^T*A
                 mat_aTa(mats[m], aTa[m]);

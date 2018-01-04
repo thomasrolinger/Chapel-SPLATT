@@ -17,4 +17,20 @@ It'd be nice to have some more fine-grain control over BLAS/LAPACK functions.
 Is there a Chapel equivalent to a omp for within an omp parallel section? What happens with
 a forall within a coforall?
 
-Having a built in lock would be great
+Having a built in lock would be great, but not entirely necessary; using sync vars isn't too bad.
+
+Do the linea algebra routines on matrices/vectors execute in parallel?
+
+Be careful when directly porting OMP code that is of the form:
+
+omp parallel
+{
+    stuff
+    omp for
+    for i...
+        stuff
+    more stuff
+}
+
+There is an implicit barrier after the omp for. We need to do the barrier explicitly in
+Chapel

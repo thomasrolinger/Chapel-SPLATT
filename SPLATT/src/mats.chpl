@@ -118,11 +118,8 @@ module Matrices {
         var b = new Barrier(numThreads_g);
 
         coforall tid in 0..numThreads_g-1 {
-        //var tid = 0;
             ref mylambda = thds[tid].scratch[0].buf;
-            for j in 0..J-1 {
-                mylambda[j] = 0;
-            }   
+            mylambda = 0.0;
 
             /*
                 mylambda[j] will contain the sum of the square of all the values
@@ -163,6 +160,11 @@ module Matrices {
             }   
             //TODO: Does sqrt() work in parallel?
 
+            //TODO: in SPLATT< the above loop is a omp for within an omp parallel section.
+            // There is an implicit barrier at the end of that loop that prevents all the
+            // threads in the paralle section from continuing. Here, need to do the barrier
+            // explicitly.
+            b.barrier();
             /* do the normalization */
             for i in I_begin..I_end-1 {
                 for j in 0..J-1 {
@@ -189,9 +191,7 @@ module Matrices {
 
         coforall tid in 0..numThreads_g-1 {
             ref mylambda = thds[tid].scratch[0].buf;
-            for j in 0..J-1 {
-                mylambda[j] = 0;
-            }
+            mylambda = 0.0;
 
             // Divide up the outer loop iterations (rows)
             var I_per_thread = (I + numThreads_g - 1) / numThreads_g;
@@ -219,6 +219,8 @@ module Matrices {
             for j in J_begin..J_end-1 {
                 lambda_vals[j] = max(lambda_vals[j], 1.0);
             }
+
+            b.barrier();
 
             /* do the normalization */
             for i in I_begin..I_end-1 {
