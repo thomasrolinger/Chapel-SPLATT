@@ -106,29 +106,14 @@ for i in 0..2 {
     }
 }*/
 
-var d : domain(1) = {0..3};
-var a: [d] int;
-a = [1,2,3,4];
-var b : [d] int;
-b  = [5,6,7,8];
+use LinearAlgebra;
 
-var t = 0;
-for i in 0..3 {
-    t+= a[i] * b[i];
-}
-writeln(t);
+var a = Matrix([1, 2, 3],
+               [4, 5, 6],
+               [7, 8, 9]);
 
-t = 0;
-t = + reduce (a*b);
-writeln(t);
+writeln(a);
+writeln("");
+a /= 2;
 
-t = 0;
-
-coforall tid in 0..1 with (ref t) {
-    t += + reduce (a*b);
-}
-writeln(t);
-
-
-
-
+writeln(a);

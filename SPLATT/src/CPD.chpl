@@ -157,7 +157,6 @@ module CPD {
                 mttkrp_csf(tensors, mats, m, thds, mttkrp_ws, args);
                 timers_g.timers["MTTKRP"].stop();
 
-                /*writeln("M1 after MTTKRP:");
                 if it == 1 {
                 writeln("M1 after MTTKRP:");
                 for i in 0..4 {
@@ -167,33 +166,40 @@ module CPD {
                     writeln("");
                 }
                 writeln("");
-                }*/
+                }
                 
-                if it == 1 {
-                writeln("mats before par_memcpy:");
-                for i in 0..4 {
-                    for j in 0..m1.J-1 {
-                        write(mats[m].vals_ref[(i*m1.J)+j], " ");
-                    }
-                    writeln("");
-                }
-                writeln("");
-                }
-                par_memcpy(mats[m].vals_ref, m1.vals_ref, m1.I * nfactors);
-                if it == 1 {
-                writeln("mats after par_memcpy:");
-                for i in 0..4 {
-                    for j in 0..m1.J-1 {
-                        write(mats[m].vals_ref[(i*m1.J)+j], " ");
-                    }
-                    writeln("");
-                }
-                writeln("");
-                }
-                mat_solve_normals(m, nmodes, aTa, mats[m], args.regularization);
+                //par_memcpy(mats[m].vals_ref, m1.vals_ref, m1.I * nfactors);
+                //mat_solve_normals(m, nmodes, aTa, mats[m], args.regularization);
 
-                /*if it == 1 {
-                writeln("mats after solve normals");
+                /* M2 = (CtC * BtB *...) ^ -1 */
+                 if it == 1 {
+                writeln("### aTa before calc_gram_inv");
+                for i in 0..4 {
+                    for j in 0..mats[m].J-1 {
+                        write(aTa[nmodes].vals[i,j], " ");
+                    }
+                    writeln("");
+                }
+                writeln("");
+                }
+                calc_gram_inv(m, nmodes, aTa);
+                if it == 1 {
+                writeln("### aTa after calc_gram_inv");
+                for i in 0..4 {
+                    for j in 0..mats[m].J-1 {
+                        write(aTa[nmodes].vals[i,j], " ");
+                    }
+                    writeln("");
+                }
+                writeln("");
+                }
+                /* A = M1 * M2 */
+                c_memset(mats[m].vals_ref, 0, mats[m].I * mats[m].J * 8);
+                // will referencing m1.vals work?
+                mats[m].vals = dot(m1.vals, aTa[nmodes].vals);
+
+                if it == 1 {
+                writeln("#### mats after matmul");
                 for i in 0..4 {
                     for j in 0..mats[m].J-1 {
                         write(mats[m].vals[i,j], " ");
@@ -201,7 +207,7 @@ module CPD {
                     writeln("");
                 }
                 writeln("");
-                }*/
+                }
 
                 if it == 0 {
                     mat_normalize(mats[m], lambda_vals, MAT_NORM_2, thds);
@@ -209,13 +215,13 @@ module CPD {
                 else {
                     mat_normalize(mats[m], lambda_vals, MAT_NORM_MAX, thds);
                 }
-                /*if it == 1 {
+                if it == 1 {
                     writeln("lambda:");
                     for e in lambda_vals {
                         writeln(e);
                     }
                     writeln("");
-                }*/
+                }
                /* writeln("");
                 if it == 1 {
                 writeln("mats after normalize");
@@ -230,6 +236,23 @@ module CPD {
                 
                 // Update A^T*A
                 mat_aTa(mats[m], aTa[m]);
+
+                /*writeln("aTa at end of iter");
+                for i in 0..4 {
+                    for j in 0..mats[m].J-1 {
+                        write(aTa[m].vals[i,j], " ");
+                    }
+                    writeln("");
+                }
+                writeln("");
+                writeln("mats at end of iter");
+                for i in 0..4 {
+                    for j in 0..mats[m].J-1 {
+                        write(mats[m].vals[i,j], " ");
+                    }
+                    writeln("");
+                }
+                writeln("");*/
             }
             fit = p_calc_fit(nmodes, thds, ttnormsq, lambda_vals, mats, m1, aTa);
             itertime.stop();

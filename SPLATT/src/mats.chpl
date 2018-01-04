@@ -11,6 +11,7 @@ module Matrices {
     use Base;
     use BLAS;
     use LAPACK;
+    use LinearAlgebra;
     use ClassicLAPACK;
     use Barriers;
     use IO.FormattedIO;
@@ -262,6 +263,13 @@ module Matrices {
         var alpha : c_double = 1.0;
         var beta : c_double = 0.0;
         syrk(A.vals, ret.vals, alpha, beta, uplo, trans, order);
+    
+        for i in 1..ret.I-1 {
+            for j in 0..i-1 {
+                ret.vals(i,j) = ret.vals(j,i);
+            }
+        }
+
         timers_g.timers["MAT A^TA"].stop();
     }
 
@@ -344,4 +352,140 @@ module Matrices {
         timers_g.timers["MAT_NORM"].stop();
     }
 
+    /*############################################################################
+
+    ##############################################################################*/
+    proc calc_gram_inv(mode, nmodes, aTa)
+    {
+        timers_g.timers["INVERSE"].start();
+
+        var rank = aTa[0].J;
+        ref av = aTa[nmodes].vals;
+        
+        av = 1.0;
+
+        /* hadamard */
+        for m in 1..nmodes-1 {
+            var madjust = (mode + m) % nmodes;
+            ref vals = aTa[madjust].vals;
+            av *= vals;
+        }
+
+        /* M2 = M2^-1 */
+        mat_syminv(aTa[nmodes]);
+
+        timers_g.timers["INVERSE"].stop();
+    }
+
+    /*############################################################################
+
+    ##############################################################################*/
+    proc mat_syminv(A) 
+    {
+        assert(A.I == A.J);
+
+        var N = A.I;
+        var L : dense_matrix = new dense_matrix();
+        L.I = N;
+        L.J = N;
+        L.matrix_domain = A.matrix_domain;
+        L.vals = 0;
+        L.vals_ref = c_ptrTo(L.vals);
+
+        /* Cholesky */
+        mat_cholesky(A, L);
+        
+        /* setup identity matrix */
+        c_memset(A.vals_ref, 0, N*N*8);
+        for n in 0..N-1 {
+            A.vals(n,n) = 1.0;
+        }
+
+        /* Solve L*Y = I */
+        p_mat_forwardsolve(L, A);
+
+        /* transpose L */
+        L.vals = transpose(L.vals);
+
+        /* Solve U*A = Y */
+        p_mat_backwardsolve(L, A);
+    }
+
+    /*############################################################################
+
+    ##############################################################################*/
+    proc mat_cholesky(A, L)
+    {
+        /* check dimensions */
+        assert(A.I == A.J);
+        assert(A.I == L.J);
+        assert(L.I == L.J);
+
+        var N = A.I;
+        ref av = A.vals;
+        ref lv = L.vals;
+
+        for i in 0..N-1 {
+            for j in 0..i {
+                var inner = 0.0;
+                for k in 0..j-1 {
+                    inner += lv(i,k) * lv(j,k);
+                }
+                if i == j {
+                    lv(i,j) = sqrt(av(i,i) - inner);
+                }
+                else {
+                    lv(i,j) = 1.0 / lv(j,j) * (av(i,j) - inner);
+                }
+            }
+        }
+    }   
+
+    private proc p_mat_forwardsolve(L, B)
+    {
+        var N = L.I;
+        ref lv = L.vals;
+        ref bv = B.vals;
+
+        /* first row of X is easy */
+        bv /= lv[0,0];
+        
+        /* now do forward sub */
+        for i in 1..N-1 {
+            for j in 0..i-1 {
+                for f in 0..N-1 {
+                    bv(i,f) -= lv(i,j) * bv(j,f);
+                }
+            }
+            for f in 0..N-1 {
+                bv(i,f) /= lv(i,i);
+            }
+        }
+    } 
+
+    private proc p_mat_backwardsolve(U, B)
+    {
+        var N = U.I;
+        ref rv = U.vals;
+        ref bv = B.vals;
+
+        /* last row of X is easy */
+        for f in 0..N-1 {
+            var i = N-1;
+            bv(i,f) /= rv(i,i);
+        }   
+ 
+        /* now do backward sub */
+        for row in 2..N {
+            var i = N - row;
+            for j in (i+1)..N-1 {
+                for f in 0..N-1 {
+                    bv(i,f) -= rv(i,j) * bv(j,f);
+                }
+            }
+            for f in 0..N-1 {
+                bv(i,f) /= rv(i,i);
+            }    
+        }
+    }  
 }
