@@ -106,9 +106,29 @@ for i in 0..2 {
     }
 }*/
 
-var c : real = 1.0/0;
+var d : domain(1) = {0..3};
+var a: [d] int;
+a = [1,2,3,4];
+var b : [d] int;
+b  = [5,6,7,8];
 
-if isnan(c) {
-    writeln("nan!");
+var t = 0;
+for i in 0..3 {
+    t+= a[i] * b[i];
 }
+writeln(t);
+
+t = 0;
+t = + reduce (a*b);
+writeln(t);
+
+t = 0;
+
+coforall tid in 0..1 with (ref t) {
+    t += + reduce (a*b);
+}
+writeln(t);
+
+
+
 

@@ -199,6 +199,9 @@ module Matrices {
             var I_end = min(I_begin + I_per_thread, I);
             for i in I_begin..I_end-1 {
                 for j in 0..J-1 {
+                    /*if I == 11512 {
+                    writef("{%i,%i} %dr = max(%dr, %dr)\n", i, j, mylambda[j], mylambda[j], vals(i,j));
+                    }*/
                     mylambda[j] = max(mylambda[j], vals(i,j));
                 }
             }
@@ -286,6 +289,15 @@ module Matrices {
 
         /* Cholesky factorization */
         potrf(lapack_memory_order.row_major, uplo, neqs);
+
+        /*writeln("neqs after potrf");
+        for i in 0..4 {
+            for j in 0..34 {
+                write(neqs[i,j], " ");
+            }
+            writeln("");
+        }
+        writeln("");*/
 
         // Solve against RHS 
 

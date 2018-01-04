@@ -825,46 +825,37 @@ module MTTKRP {
         var which_csf = ws.mode_csf_map[mode];
         var outdepth = csf_mode_to_depth(tensors[which_csf], mode);
         if outdepth == 0 {
-            writeln("\t++ Calling p_schedule_tiles for root");
             /* root */
             if ws.is_privatized[mode] {
                 /* don't use atomics */
-                writeln("** Not using atomics");
                 var mttkrp_func = new mttkrp_root_nolock();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
             }
             else {
-                writeln("** Using atomics");
                 var mttkrp_func = new mttkrp_root_locked();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
             }
         }
         else if outdepth == nmodes-1 {
-            writeln("\t++ Calling p_schedule_tiles for leaf");
             /* leaf */
             if ws.is_privatized[mode] {
                 /* don't use atomics */
-                writeln("** Not using atomics");
                 var mttkrp_func = new mttkrp_leaf_nolock();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
             }
             else {
-                writeln("** Using atomics");
                 var mttkrp_func = new mttkrp_leaf_locked();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
             }
         }
         else {
-            writeln("\t++ Calling p_schedule_tiles for internal");
             /* internal */
             if ws.is_privatized[mode] {
                 /* don't use atomics */
-                writeln("** Not using atomics");
                 var mttkrp_func = new mttkrp_intl_nolock();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
             }
             else {
-                writeln("** Using atomics");
                 var mttkrp_func = new mttkrp_intl_locked();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
             }

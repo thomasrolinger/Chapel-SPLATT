@@ -17,6 +17,7 @@ module CPD {
     use IO.FormattedIO;
     use Time;
     use ThreadInfo;
+    use Barriers;
 
    /*****************************
     *
@@ -132,6 +133,10 @@ module CPD {
         // Compute input tensor norm
         var ttnormsq : real = csf_frobsq(tensors);
 
+        // Fit
+        var fit : real = 0;
+        var oldfit : real = 0;
+
         // Separate timer for the iterations
         var itertime : Timer;
         
@@ -148,21 +153,55 @@ module CPD {
                 m1.I = mats[m].I;
 
                 // M1 = X * (C o B)
-                writeln("## MODE: ", m, ", Calling mttkrp_csf");
                 timers_g.timers["MTTKRP"].start();
                 mttkrp_csf(tensors, mats, m, thds, mttkrp_ws, args);
                 timers_g.timers["MTTKRP"].stop();
 
                 /*writeln("M1 after MTTKRP:");
+                if it == 1 {
+                writeln("M1 after MTTKRP:");
                 for i in 0..4 {
                     for j in 0..m1.J-1 {
                         write(m1.vals_ref[(i*m1.J)+j], " ");
                     }
                     writeln("");
+                }
+                writeln("");
                 }*/
-
+                
+                if it == 1 {
+                writeln("mats before par_memcpy:");
+                for i in 0..4 {
+                    for j in 0..m1.J-1 {
+                        write(mats[m].vals_ref[(i*m1.J)+j], " ");
+                    }
+                    writeln("");
+                }
+                writeln("");
+                }
                 par_memcpy(mats[m].vals_ref, m1.vals_ref, m1.I * nfactors);
+                if it == 1 {
+                writeln("mats after par_memcpy:");
+                for i in 0..4 {
+                    for j in 0..m1.J-1 {
+                        write(mats[m].vals_ref[(i*m1.J)+j], " ");
+                    }
+                    writeln("");
+                }
+                writeln("");
+                }
                 mat_solve_normals(m, nmodes, aTa, mats[m], args.regularization);
+
+                /*if it == 1 {
+                writeln("mats after solve normals");
+                for i in 0..4 {
+                    for j in 0..mats[m].J-1 {
+                        write(mats[m].vals[i,j], " ");
+                    }
+                    writeln("");
+                }
+                writeln("");
+                }*/
 
                 if it == 0 {
                     mat_normalize(mats[m], lambda_vals, MAT_NORM_2, thds);
@@ -170,33 +209,184 @@ module CPD {
                 else {
                     mat_normalize(mats[m], lambda_vals, MAT_NORM_MAX, thds);
                 }
-                   /* writeln("A after normalization:");
-                    for i in 0..5 {
-                        for j in 0..mats[m].J-1 {
-                            write(mats[m].vals(i,j), " ");
-                        }
-                        writeln("");
-                    }
-                writeln("");
-                writeln("");
-                writeln("");*/
-                
-                // Update A^T*A
-                mat_aTa(mats[m], aTa[m]);
-                /*writeln("aTa after update:");
-                for i in 0..aTa[m].I-1 {
-                    for j in 0..aTa[m].J-1 {
-                        write(aTa[m].vals(i,j), " ");
+                /*if it == 1 {
+                    writeln("lambda:");
+                    for e in lambda_vals {
+                        writeln(e);
                     }
                     writeln("");
                 }*/
+               /* writeln("");
+                if it == 1 {
+                writeln("mats after normalize");
+                for i in 0..4 {
+                    for j in 0..mats[m].J-1 {
+                        write(mats[m].vals[i,j], " ");
+                    }
+                    writeln("");
+                }
+                writeln("");
+                }*/
+                
+                // Update A^T*A
+                mat_aTa(mats[m], aTa[m]);
             }
+            fit = p_calc_fit(nmodes, thds, ttnormsq, lambda_vals, mats, m1, aTa);
             itertime.stop();
-            exit(-1);
-        }
 
+            writef("  its =  %i (%0.3drs)  fit = %0.5dr  delta = %+0.4er\n", it+1, itertime.elapsed(), fit, fit-oldfit);
+
+            if fit == 1.0 || (it > 0 && abs(fit-oldfit) < args.tolerance) {
+                break;
+            }
+            oldfit = fit;
+        }
+        
         timers_g.timers["CPD"].stop();
 
-        return 0.0;
+        return fit;
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Compute the fit of a Kruskal tensor, Z, to an input
+    #                   tensor, X. This is computed via
+    #                   1 - [sqrt(<X,X> + <Z,Z> - 2<X,Z>) / sqrt(<X,X>)]
+    #
+    #   Parameters:     nmodes (int):               Number of modes 
+    #                   thds:                       Thread data structures
+    #                   ttnormsq (real):            Norm squared of original input tensor
+    #                   lambda_vals (real[]):       Vector of column norms
+    #                   mats (dense_matrix[]):      Kruskal-tensor matrices
+    #                   m1:                         Result of MTTKRP on last mode
+    #                   aTa:                        Matrices for AtA, BtB, CtC, etc.
+    #
+    #   Return:         real: Inner product of two tensors, computed via
+    #                   \lambda^T hadamard(mats[nmodes-1], m1) \lambda
+    ########################################################################*/
+    private proc p_calc_fit(nmodes, thds, ttnormsq, lambda_vals, mats, m1, aTa) : real
+    {
+        timers_g.timers["CPD FIT"].start();
+
+        /* First get norm of new model: lambda^T * (hada aTa) * lambda */
+        var norm_mats : real = p_kruskal_norm(nmodes, lambda_vals, aTa);
+
+        /* Compute inner product of tensor with new model */
+        var inner : real = p_tt_kruskal_inner(nmodes, thds, lambda_vals, mats, m1);
+
+        writef("norm_mats = %dr, inner = %dr\n", norm_mats, inner);
+
+        /*
+            We actually want sqrt(<X,X> + <Y,Y> - 2<X,Y>), but if the fit is perfect
+            just make it 0
+        */
+        var residual : real = ttnormsq + norm_mats - (2 * inner);
+        if residual > 0.0 {
+            residual = sqrt(residual);
+        }
+        timers_g.timers["CPD FIT"].stop();
+
+        return 1 - (residual / sqrt(ttnormsq));
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Find the Frobenius norm squared of a Kruskal tensor.
+    #                   This is equivalent to via computing <X,X>, the inner
+    #                   product of X with itself. We find this via
+    #                   \lambda^T (AtA * BtB *...)\lambda where * is the
+    #                   Hadamard product.
+    #
+    #   Parameters:     nmodes (int):               Number of modes 
+    #                   lambda_vals (real[]):       Vector of column norms
+    #                   aTa:                        Matrices for AtA, BtB, CtC, etc.
+    #
+    #   Return:         real: The Frobenius norm of X, squared
+    ########################################################################*/
+    private proc p_kruskal_norm(nmodes, lambda_vals, aTa) : real
+    {
+        var rank = aTa[0].J;
+        ref av = aTa[nmodes].vals;
+
+        var norm_mats : real = 0;
+
+        // The loops below assume that the data is stored in the upper
+        // triangle
+
+        /* use aTa[nmodes] as scratch space */
+        for i in 0..rank-1 {
+            for j in i..rank-1 {
+                av[i,j] = 1.0;
+            }
+        }
+
+        /* aTa[nmodes] = hada(aTa) */
+        for m in 0..nmodes-1 {
+            ref atavals = aTa[m].vals;
+            for i in 0..rank-1 {
+                for j in i..rank-1 {
+                    av[i,j] *= atavals[i,j];
+                }
+            }
+        }
+
+        /* now compute lambda^T * aTa[nmodes] * lambda */
+        for i in 0..rank-1 {
+            norm_mats += av[i,i] * lambda_vals[i] * lambda_vals[i];
+            for j in i+1..rank-1 {
+                norm_mats += av[i,j] * lambda_vals[i] * lambda_vals[j] * 2;
+            }
+        }
+
+        return abs(norm_mats);
+    }
+
+    /*########################################################################
+    #   Descriptipn:    Compute the inner product of a Kruskal tensor and an
+    #                   unfactored tensor. Assumes that m1 contains the MTTKRP
+    #                   result of the last mode.
+    #
+    #   Parameters:     nmodes (int):               Number of modes 
+    #                   thds:                       Thread data structures
+    #                   lambda_vals (real[]):       Vector of column norms
+    #                   mats (dense_matrix[]):      Kruskal-tensor matrices
+    #                   m1:                         Result of MTTKRP on last mode
+    #
+    #   Return:         real: The inner product of the two tensors, compute via
+    #                   1^T hadamard(mats[nmodes-1], m1) \lambda
+    ########################################################################*/
+    private proc p_tt_kruskal_inner(nmodes, thds, lambda_vals, mats, m1) : real
+    {
+        var rank = mats[0].J;
+        var lastm = nmodes-1;
+        var dim = m1.I;
+
+        ref m0 = mats[lastm].vals;
+        ref mv = m1.vals;
+
+        var myinner : real = 0;
+
+        var b = new Barrier(numThreads_g);
+        coforall tid in 0..numThreads_g-1 with (ref myinner) {
+            ref accumF = thds[tid].scratch[0].buf;
+            accumF = 0.0;
+            // Divide up dim
+            var I_per_thread = (dim + numThreads_g - 1) / numThreads_g;
+            var I_begin = min(I_per_thread * tid, dim);
+            var I_end = min(I_begin + I_per_thread, dim);
+            for i in I_begin..I_end-1 {
+                for r in 0..rank-1 {
+                    accumF[r] += m0[i,r] * mv[i,r];
+                }
+            }
+            b.barrier();
+
+            /* accumulate everything into myinner */
+            //TODO: This is pretty nice. In C, the omp parallel
+            // section is set up with a +reduction on myinner, but 
+            // there needs to be a for-loop that each thread executed to
+            // accumulate into my inner. Here, we can use the built in
+            // reduction.
+            myinner += + reduce(accumF[0..rank-1] * lambda_vals); 
+        }
+        return myinner;
     }
 }
