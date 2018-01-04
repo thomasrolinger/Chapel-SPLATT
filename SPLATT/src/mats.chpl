@@ -63,7 +63,7 @@ module Matrices {
         */
         ref neqs = neq_matrix.vals;
           
-        var b = new Barrier(numThreads_g-1);
+        var b = new Barrier(numThreads_g);
 
         coforall tid in 0..numThreads_g-1 {
             /* first initialize with 1s */
@@ -99,7 +99,7 @@ module Matrices {
                     neqs[i,j] = neqs[j,i];
                 }
             }
-        }
+        }   
     }
 
     /*########################################################################
@@ -303,7 +303,6 @@ module Matrices {
         var lda : c_int = neqs.domain.dim(2).size : c_int;
         var ldb : c_int = rhs.vals.domain.dim(1).size : c_int;
         LAPACKE_dpotrs(lapack_memory_order.row_major, uplo, N, nrhs, neqs, lda, rhs.vals, ldb);
-
         timers_g.timers["INVERSE"].stop();
     }
     

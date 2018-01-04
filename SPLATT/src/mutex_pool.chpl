@@ -36,13 +36,12 @@ module MutexPool {
         The number of bytes between locks[0] and locks[8] is
         sizeof(int64)* 8 = 64 bytes.
     */
+
     class mutex_pool {
-        var initialized : bool;
         var num_locks : int;
         var pad_size : int;
         var locks_d : domain(1) = 0..(DEFAULT_NLOCKS * DEFAULT_LOCK_PAD)-1;
-        // All locks are intialized to 'unlocked'
-        var locks : [locks_d] sync int = 1;
+        var locks : [locks_d] sync bool;
     }
 
     /*****************************
@@ -56,7 +55,10 @@ module MutexPool {
         var pool : mutex_pool = new mutex_pool();
         pool.num_locks = num_locks;
         pool.pad_size = pad_size;
-        pool.locks_d = 0..(num_locks*pad_size)-1;
+        for l in 0..num_locks-1 {    
+            var lock = mutex_translate_id(l, num_locks, pad_size);
+            pool.locks[lock].writeXF(true);
+        }
         return pool;
     }
 
@@ -87,18 +89,13 @@ module MutexPool {
     #
     #   Return:         None
     ########################################################################*/
-    proc mutex_set_lock(pool : mutex_pool, id : int)
+    proc mutex_set_lock(pool : mutex_pool, id : int, tid)
     {
         // Setting a lock in our case means reading the sync variable. This
         // sets the sync var to empty and means no other task will be able
         // to "set the lock" until I unset it (i.e. write to it).
         var lock_id = mutex_translate_id(id, pool.num_locks, pool.pad_size);
-        if !pool.locks[lock_id].isFull {
-            writeln("Lock ", lock_id, " is empty, but it shouldn't be!");
-        }
-        //writeln("\tSetting lock: ", lock_id);
-        var temp = pool.locks[lock_id];
-        //pool.locks[lock_id].reset();
+        pool.locks[lock_id];
     }
 
     /*########################################################################
@@ -109,14 +106,10 @@ module MutexPool {
     #
     #   Return:         None
     ########################################################################*/
-    proc mutex_unset_lock(pool : mutex_pool, id : int)
+    proc mutex_unset_lock(pool : mutex_pool, id : int, tid)
     {
         // To unset the lock, we write to it. This sets it from empty to full.
         var lock_id = mutex_translate_id(id, pool.num_locks, pool.pad_size);
-        //writeln("\tReleasing lock: ", lock_id);
-        if pool.locks[lock_id].isFull {
-            writeln("Lock ", lock_id, " is full, but it shouldn't be!");
-        }
-        pool.locks[lock_id] = 1;
+        pool.locks[lock_id].writeXF(true);
     }
 }

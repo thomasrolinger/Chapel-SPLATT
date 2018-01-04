@@ -267,12 +267,12 @@ module MTTKRP {
             var mv = ovals + (fid * nfactors);
             
             /* flush to output */
-            mutex_set_lock(pool_g, fid);
+            mutex_set_lock(pool_g, fid, tid);
             for r in 0.. nfactors-1 {
                 mv[r] += writeF[r];
                 writeF[r] = 0.0;
             }
-            mutex_unset_lock(pool_g, fid);
+            mutex_unset_lock(pool_g, fid, tid);
         }
     }
 
@@ -383,11 +383,11 @@ module MTTKRP {
                 for jj in fptr[f]..fptr[f+1]-1 {
                     var v = vals[jj];
                     var ov = ovals + (inds[jj] * nfactors);
-                    mutex_set_lock(pool_g, inds[jj]);
+                    mutex_set_lock(pool_g, inds[jj], tid);
                     for r in 0..nfactors-1 {
                         ov[r] += v * accumF[r];
                     }
-                    mutex_unset_lock(pool_g, inds[jj]);
+                    mutex_unset_lock(pool_g, inds[jj], tid);
                 }
             }
         }
@@ -467,7 +467,7 @@ module MTTKRP {
         var nslices = ct.pt[tile_id].nfibs[0];
         var start = partition[tid];
         var stop = partition[tid+1];
-        
+
         for s in start..stop-1 {
             var fid = if sids[0] == -1 then s else sids[s];
             /* root roow */
@@ -491,15 +491,11 @@ module MTTKRP {
                 }
                 /* write to fiber row */
                 var ov = ovals + (fids[f] * nfactors);
-                //writeln("Trying to get lock on ", fids[f]);
-                mutex_set_lock(pool_g, fids[f]);
-                //writeln("Got Lock!");
+                mutex_set_lock(pool_g, fids[f], tid);
                 for r in 0..nfactors-1 {
                     ov[r] += rv[r] * accumF[r];
                 }
-                //writeln("Unsetting lock on ", fids[f]);
-                mutex_unset_lock(pool_g, fids[f]);
-                //writeln("Lock is unset");
+                mutex_unset_lock(pool_g, fids[f], tid);
             }
         }
     }
@@ -655,29 +651,6 @@ module MTTKRP {
                 writeln("ERROR: Tiling not supported");
             }
             else {
-                /* untiled, parallelize within kernel */
-                /*writeln("\t\t- Before calling mttkrp func");
-                writeln("\t\t- A: ");
-                write("\t\t");
-                for x in 0..9 {
-                    write(mats_priv[0].vals_ref[x], " ");
-                }    
-                writeln("\n\t\t- B: ");
-                write("\t\t");
-                for x in 0..9 {
-                    write(mats_priv[1].vals_ref[x], " ");
-                }
-                writeln("\n\t\t- C: ");
-                write("\t\t");
-                for x in 0..9 {
-                    write(mats_priv[2].vals_ref[x], " ");
-                }
-                writeln("\n\t\t- M1: ");
-                write("\t\t");
-                for x in 0..9 {
-                    write(mats_priv[nmodes].vals_ref[x], " ");
-                }
-                writeln("");*/
                 mttkrp_func.func(csf, 0, mats_priv, mode, thds, tree_partition, tid);
             }
 
@@ -854,7 +827,7 @@ module MTTKRP {
         if outdepth == 0 {
             writeln("\t++ Calling p_schedule_tiles for root");
             /* root */
-            if ws.is_privatized[mode] || numThreads_g == 1 {
+            if ws.is_privatized[mode] {
                 /* don't use atomics */
                 writeln("** Not using atomics");
                 var mttkrp_func = new mttkrp_root_nolock();
@@ -869,7 +842,7 @@ module MTTKRP {
         else if outdepth == nmodes-1 {
             writeln("\t++ Calling p_schedule_tiles for leaf");
             /* leaf */
-            if ws.is_privatized[mode] || numThreads_g == 1 {
+            if ws.is_privatized[mode] {
                 /* don't use atomics */
                 writeln("** Not using atomics");
                 var mttkrp_func = new mttkrp_leaf_nolock();
@@ -884,7 +857,7 @@ module MTTKRP {
         else {
             writeln("\t++ Calling p_schedule_tiles for internal");
             /* internal */
-            if ws.is_privatized[mode] || numThreads_g == 1 {
+            if ws.is_privatized[mode] {
                 /* don't use atomics */
                 writeln("** Not using atomics");
                 var mttkrp_func = new mttkrp_intl_nolock();
