@@ -34,3 +34,11 @@ omp parallel
 
 There is an implicit barrier after the omp for. We need to do the barrier explicitly in
 Chapel
+
+Not being able to store ref in classes is a draw back
+
+It seems difficult to create a reference to an array of records/objects. This is easy in
+C because we just say something like:
+    myType *ref = myRecords;    //myRecords is an array of myType objects
+Then whatever we do to myRecord affects ref and vice versa. But in Chapel, the above statement
+would be an array assignment, which creates a copy of myRecords. 

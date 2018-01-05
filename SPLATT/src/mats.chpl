@@ -200,9 +200,6 @@ module Matrices {
             var I_end = min(I_begin + I_per_thread, I);
             for i in I_begin..I_end-1 {
                 for j in 0..J-1 {
-                    /*if I == 11512 {
-                    writef("{%i,%i} %dr = max(%dr, %dr)\n", i, j, mylambda[j], mylambda[j], vals(i,j));
-                    }*/
                     mylambda[j] = max(mylambda[j], vals(i,j));
                 }
             }
@@ -298,15 +295,6 @@ module Matrices {
         /* Cholesky factorization */
         potrf(lapack_memory_order.row_major, uplo, neqs);
 
-        /*writeln("neqs after potrf");
-        for i in 0..4 {
-            for j in 0..34 {
-                write(neqs[i,j], " ");
-            }
-            writeln("");
-        }
-        writeln("");*/
-
         // Solve against RHS 
 
         /*
@@ -340,7 +328,7 @@ module Matrices {
     ########################################################################*/
     proc mat_normalize(A, lambda_vals, which, thds)
     {
-        timers_g.timers["MAT_NORM"].start();
+        timers_g.timers["MAT NORM"].start();
         select (which) {
             when MAT_NORM_2 {
                 p_mat_2norm(A, lambda_vals, thds);
@@ -349,7 +337,7 @@ module Matrices {
                 p_mat_maxnorm(A, lambda_vals, thds);
             }
         }
-        timers_g.timers["MAT_NORM"].stop();
+        timers_g.timers["MAT NORM"].stop();
     }
 
     /*############################################################################
@@ -362,13 +350,23 @@ module Matrices {
         var rank = aTa[0].J;
         ref av = aTa[nmodes].vals;
         
-        av = 1.0;
+        //av = 1.0;
+        for x in 0..rank-1 {
+            for y in 0..rank-1 {
+                av[x,y] = 1.0;
+            }
+        }
 
         /* hadamard */
         for m in 1..nmodes-1 {
             var madjust = (mode + m) % nmodes;
             ref vals = aTa[madjust].vals;
-            av *= vals;
+            //av *= vals;   
+            for x in 0..rank-1 {
+                for y in 0..rank-1 {
+                    av[x,y] *= vals[x,y];
+                }
+            }
         }
 
         /* M2 = M2^-1 */
@@ -388,15 +386,14 @@ module Matrices {
         var L : dense_matrix = new dense_matrix();
         L.I = N;
         L.J = N;
-        L.matrix_domain = A.matrix_domain;
+        L.matrix_domain = {0..L.I-1, 0..L.J-1};
         L.vals = 0;
-        L.vals_ref = c_ptrTo(L.vals);
 
         /* Cholesky */
         mat_cholesky(A, L);
         
         /* setup identity matrix */
-        c_memset(A.vals_ref, 0, N*N*8);
+        A.vals = 0.0;
         for n in 0..N-1 {
             A.vals(n,n) = 1.0;
         }
@@ -448,7 +445,10 @@ module Matrices {
         ref bv = B.vals;
 
         /* first row of X is easy */
-        bv /= lv[0,0];
+        //bv /= lv[0,0];
+        for j in 0..N-1 {
+            bv[0,j] /= lv[0,0];
+        }
         
         /* now do forward sub */
         for i in 1..N-1 {

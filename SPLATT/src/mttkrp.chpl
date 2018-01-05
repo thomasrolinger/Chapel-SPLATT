@@ -220,9 +220,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        ref avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
-        ref bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        ref ovals = mats[nmodes].vals_ref;
+        var avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
 
         var nfactors = mats[nmodes].J;
 
@@ -290,9 +290,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        ref avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
-        ref bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        ref ovals = mats[nmodes].vals_ref;
+        var avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
 
         var nfactors = mats[nmodes].J;
 
@@ -356,9 +356,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        ref avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
-        ref bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
-        ref ovals = mats[nmodes].vals_ref;
+        var avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
         var nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
@@ -407,9 +407,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        ref avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
-        ref bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
-        ref ovals = mats[nmodes].vals_ref;
+        var avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
         var nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
@@ -456,9 +456,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        ref avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
-        ref bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        ref ovals = mats[nmodes].vals_ref;
+        var avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
         var nfactors = mats[nmodes].J;
         
         // pointer to 1D chapel array
@@ -514,9 +514,9 @@ module MTTKRP {
         var inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
 
         // pointers to 2D chapel matrices
-        ref avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
-        ref bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        ref ovals = mats[nmodes].vals_ref;
+        var avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        var bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
+        var ovals = mats[nmodes].vals_ref;
         var nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
@@ -605,6 +605,7 @@ module MTTKRP {
         var ncols = mats[mode].J;
 
         /* Store old pointer */
+        mats[nmodes].vals_ref = c_ptrTo(mats[nmodes].vals);
         var global_output = mats[nmodes].vals_ref;
     
         /* barrier used in p_reduce_privatized */
@@ -862,3 +863,4 @@ module MTTKRP {
         }
     }
 }
+
