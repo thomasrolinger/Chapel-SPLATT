@@ -22,11 +22,6 @@ which turns on --no-checks.
     functions. This will involve computing the norms of each matrix column and
     then doing a reduction on those sums.
 
-5.) Get rid of nested class structures. Instead, using arrays of arrays. I believe this
-will work. Before I couldn't get it to work because I was trying to create matrices where
-the rows had different number of elements. In a Chapel matrix, that can't happen but if it's
-stored as an array of arrays, it should work.
-
 RESULT: This works for the 2norm but that is only called for the first iteration, so it doesn't
 have a big effective on the performance of the decomposition. It doesn't seem that Chapel has a
 max norm built in.
