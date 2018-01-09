@@ -1,5 +1,11 @@
 This branch will be where I try different methods of making the Chapel code faster.
 
++ It seems that running with less threads (i.e. less than 20) has better performance
+than using all 20. Using gprof, a lot of the time is spent doing some coforall stuff.
+So maybe the overhead of task creation and what not takes over? For YELP, running with
+4 "threads" seems to be the best.
+
+
 Here are the optimizations I will be trying. I'll try to keep this list up-to-date and
 describe the outcomes:
 
@@ -25,3 +31,7 @@ which turns on --no-checks.
 RESULT: This works for the 2norm but that is only called for the first iteration, so it doesn't
 have a big effective on the performance of the decomposition. It doesn't seem that Chapel has a
 max norm built in.
+
+5.) Use BLAS for mat mul
+
+6.) Implement mat mul from SPLATT
