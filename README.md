@@ -39,3 +39,4 @@ RESULT: Seems to be the best choice, about 1.5x faster than using dot from Linea
 RESULT: Bad performance, wrong results
 
 7.) Use 1D arrays for all matrices. The Chapel documentation claims that this will be better
+RESULT: No difference, sticking with 2d matrices

@@ -58,7 +58,7 @@ TENSORDATA=${HOMEDIR}/tensor_data/CHAPEL
 OUTDIR=${THISDIR}/output_data_${LANGUAGE}
 
 # Data sets
-declare -a dataSets=("YELP" "NELL-2" "NELL-1")
+declare -a dataSets=("YELP" "NELL-2")
 
 ######################################################################################
 #
