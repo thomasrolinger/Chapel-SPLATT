@@ -33,10 +33,10 @@ module CPD {
     #
     #   Return:         int: SPLATT_SUCCESS on success
     ########################################################################*/
-    proc splatt_cpd_als(tensors, args : cpd_cmd_args, factored : splatt_kruskal) : int
+    proc splatt_cpd_als(const tensors, const args : cpd_cmd_args, factored : splatt_kruskal) : int
     {
-        var nmodes : int = tensors[0].nmodes;
-        var nfactors : int = args.decompRank;
+        const nmodes : int = tensors[0].nmodes;
+        const nfactors : int = args.decompRank;
         // Create factor matrices. One for each mode, plus 1 extra
         // for scratch space
         var mats : [0..(nmodes+1)-1] dense_matrix;
@@ -93,15 +93,15 @@ module CPD {
     #
     #   Return:         real: Final fit of factorization
     ########################################################################*/
-    proc cpd_als_iterate(tensors, mats, lambda_vals, nfactors, args : cpd_cmd_args) : real
+    proc cpd_als_iterate(const tensors, mats, lambda_vals, const nfactors, const args : cpd_cmd_args) : real
     {
-        var nmodes : int = tensors[0].nmodes;
-        var nthreads : int = args.numThreads;
+        const nmodes : int = tensors[0].nmodes;
+        const nthreads : int = args.numThreads;
 
         // Setup thread structures. + 64 bytes is to avoid false sharing.
         // SPLATT allocates this in terms of bytes but we're going to assume    
         // the items will always be 8 bytes.
-        var lengths: [0..2] int = [((nmodes*nfactors*8)+64)/8, 0,((nmodes*nfactors*8)+64)/8];
+        const lengths: [0..2] int = [((nmodes*nfactors*8)+64)/8, 0,((nmodes*nfactors*8)+64)/8];
         var thds = thd_init(nthreads, 3, lengths);
 
         // m1 is the output of the MTTKRP
@@ -133,7 +133,7 @@ module CPD {
         var mttkrp_ws: splatt_mttkrp_ws = splatt_mttkrp_alloc_ws(tensors, nfactors, args);
 
         // Compute input tensor norm
-        var ttnormsq : real = csf_frobsq(tensors);
+        const ttnormsq : real = csf_frobsq(tensors);
 
         // Fit
         var fit : real = 0;
@@ -146,7 +146,7 @@ module CPD {
         timers_g.timers["CPD"].start();
 
         // Perform iterations
-        var niters = args.numIters;
+        const niters = args.numIters;
         for it in 0..niters-1 {
             itertime.clear();
             itertime.start();
@@ -212,15 +212,15 @@ module CPD {
     #   Return:         real: Inner product of two tensors, computed via
     #                   \lambda^T hadamard(mats[nmodes-1], m1) \lambda
     ########################################################################*/
-    private proc p_calc_fit(nmodes, thds, ttnormsq, lambda_vals, mats, m1, aTa) : real
+    private proc p_calc_fit(const nmodes, const thds, const ttnormsq, const lambda_vals, mats, const m1, aTa) : real
     {
         timers_g.timers["FIT"].start();
 
         /* First get norm of new model: lambda^T * (hada aTa) * lambda */
-        var norm_mats : real = p_kruskal_norm(nmodes, lambda_vals, aTa);
+        const norm_mats : real = p_kruskal_norm(nmodes, lambda_vals, aTa);
 
         /* Compute inner product of tensor with new model */
-        var inner : real = p_tt_kruskal_inner(nmodes, thds, lambda_vals, mats, m1);
+        const inner : real = p_tt_kruskal_inner(nmodes, thds, lambda_vals, mats, m1);
 
         //writef("norm_mats = %dr, inner = %dr\n", norm_mats, inner);
 
@@ -250,9 +250,9 @@ module CPD {
     #
     #   Return:         real: The Frobenius norm of X, squared
     ########################################################################*/
-    private proc p_kruskal_norm(nmodes, lambda_vals, aTa) : real
+    private proc p_kruskal_norm(const nmodes, const lambda_vals, aTa) : real
     {
-        var rank = aTa[0].J;
+        const rank = aTa[0].J;
         ref av = aTa[nmodes].vals;
 
         var norm_mats : real = 0;
@@ -269,7 +269,7 @@ module CPD {
 
         /* aTa[nmodes] = hada(aTa) */
         for m in 0..nmodes-1 {
-            ref atavals = aTa[m].vals;
+            const ref atavals = aTa[m].vals;
             for i in 0..rank-1 {
                 for j in i..rank-1 {
                     av[i,j] *= atavals[i,j];
@@ -302,25 +302,25 @@ module CPD {
     #   Return:         real: The inner product of the two tensors, compute via
     #                   1^T hadamard(mats[nmodes-1], m1) \lambda
     ########################################################################*/
-    private proc p_tt_kruskal_inner(nmodes, thds, lambda_vals, mats, m1) : real
+    private proc p_tt_kruskal_inner(const nmodes, const thds, const lambda_vals, mats, const m1) : real
     {
-        var rank = mats[0].J;
-        var lastm = nmodes-1;
-        var dim = m1.I;
+        const rank = mats[0].J;
+        const lastm = nmodes-1;
+        const dim = m1.I;
 
-        ref m0 = mats[lastm].vals;
-        ref mv = m1.vals;
+        const ref m0 = mats[lastm].vals;
+        const ref mv = m1.vals;
 
         var myinner : real = 0;
 
-        var b = new Barrier(numThreads_g);
+        const b = new Barrier(numThreads_g);
         coforall tid in 0..numThreads_g-1 with (ref myinner) {
             ref accumF = thds[tid].scratch[0].buf;
             accumF = 0.0;
             // Divide up dim
-            var I_per_thread = (dim + numThreads_g - 1) / numThreads_g;
-            var I_begin = min(I_per_thread * tid, dim);
-            var I_end = min(I_begin + I_per_thread, dim);
+            const I_per_thread = (dim + numThreads_g - 1) / numThreads_g;
+            const I_begin = min(I_per_thread * tid, dim);
+            const I_end = min(I_begin + I_per_thread, dim);
             for i in I_begin..I_end-1 {
                 for r in 0..rank-1 {
                     accumF[r] += m0[i,r] * mv[i,r];

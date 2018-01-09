@@ -10,9 +10,9 @@
 module Matrices {
     use Base;
     use BLAS;
-    use LAPACK;
+    //use LAPACK;
     use LinearAlgebra;
-    use ClassicLAPACK;
+    //use ClassicLAPACK;
     use Barriers;
     use IO.FormattedIO;
 
@@ -53,24 +53,24 @@ module Matrices {
     #
     #   Return:         None
     ########################################################################*/
-    private proc p_form_gram(neq_matrix, aTa, mode, nmodes, reg)
+    private proc p_form_gram(const neq_matrix, const aTa, const mode, const nmodes, const reg)
     {
         /* nfactors */
-        var N = aTa[0].J;
+        const N = aTa[0].J;
 
         /* 
             form upper triangual normal equations. We are ignoring
             the regularization parameter, so this loop is simplified
         */
-        ref neqs = neq_matrix.vals;
+        const ref neqs = neq_matrix.vals;
           
-        var b = new Barrier(numThreads_g);
+        const b = new Barrier(numThreads_g);
 
         coforall tid in 0..numThreads_g-1 {
             /* first initialize with 1s */
-            var I_per_thread = (N + numThreads_g - 1) / numThreads_g;
-            var I_begin = min(I_per_thread * tid, N);
-            var I_end = min(I_begin + I_per_thread, N);
+            const I_per_thread = (N + numThreads_g - 1) / numThreads_g;
+            const I_begin = min(I_per_thread * tid, N);
+            const I_end = min(I_begin + I_per_thread, N);
             for i in I_begin..I_end-1 {
                 for j in 0..N-1 {
                     neqs(i,j) = 1.0;
@@ -81,7 +81,7 @@ module Matrices {
                 if m == mode {
                     continue;
                 }
-                ref mat = aTa[m].vals;
+                const ref mat = aTa[m].vals;
                 for i in I_begin..I_end-1 {
                     /* mat is symmetric but stored upper right triangular */
                     /* copy upper triangle */
@@ -110,13 +110,13 @@ module Matrices {
     #
     #   Return:         None
     ########################################################################*/
-    private proc p_mat_2norm(A, lambda_vals, thds)
+    private proc p_mat_2norm(const A, lambda_vals, const thds)
     {
-        var I = A.I;
-        var J = A.J;
+        const I = A.I;
+        const J = A.J;
         ref vals = A.vals;
 
-        var b = new Barrier(numThreads_g);
+        const b = new Barrier(numThreads_g);
 
         coforall tid in 0..numThreads_g-1 {
             ref mylambda = thds[tid].scratch[0].buf;
@@ -134,9 +134,9 @@ module Matrices {
                 up the for loop iterations based on the TIDs.
             */
             // Divide up the outer loop iterations (rows)
-            var I_per_thread = (I + numThreads_g - 1) / numThreads_g;
-            var I_begin = min(I_per_thread * tid, I);
-            var I_end = min(I_begin + I_per_thread, I);
+            const I_per_thread = (I + numThreads_g - 1) / numThreads_g;
+            const I_begin = min(I_per_thread * tid, I);
+            const I_end = min(I_begin + I_per_thread, I);
             for i in I_begin..I_end-1 {
                 for j in 0..J-1 {
                     mylambda[j] += vals(i,j) * vals(i,j);
@@ -153,13 +153,14 @@ module Matrices {
             b.barrier();
 
             // Divide up J amongst threads
-            var J_per_thread = (J + numThreads_g - 1) / numThreads_g;
-            var J_begin = min(J_per_thread * tid, J);
-            var J_end = min(J_begin + J_per_thread, J);
+            /*const J_per_thread = (J + numThreads_g - 1) / numThreads_g;
+            const J_begin = min(J_per_thread * tid, J);
+            const J_end = min(J_begin + J_per_thread, J);
             for j in J_begin..J_end-1 {
                 lambda_vals[j] = sqrt(lambda_vals[j]);
-            }   
-            //TODO: Does sqrt() work in parallel?
+            }*/
+            lambda_vals = sqrt(lambda_vals);   
+            
 
             //TODO: in SPLATT< the above loop is a omp for within an omp parallel section.
             // There is an implicit barrier at the end of that loop that prevents all the
@@ -182,22 +183,22 @@ module Matrices {
     #
     #   Return:         None
     ########################################################################*/
-    private proc p_mat_maxnorm(A, lambda_vals, thds)
+    private proc p_mat_maxnorm(const A, lambda_vals, const thds)
     {
-        var I = A.I;
-        var J = A.J;
+        const I = A.I;
+        const J = A.J;
         ref vals = A.vals;
 
-        var b = new Barrier(numThreads_g);
+        const b = new Barrier(numThreads_g);
 
         coforall tid in 0..numThreads_g-1 {
             ref mylambda = thds[tid].scratch[0].buf;
             mylambda = 0.0;
 
             // Divide up the outer loop iterations (rows)
-            var I_per_thread = (I + numThreads_g - 1) / numThreads_g;
-            var I_begin = min(I_per_thread * tid, I);
-            var I_end = min(I_begin + I_per_thread, I);
+            const I_per_thread = (I + numThreads_g - 1) / numThreads_g;
+            const I_begin = min(I_per_thread * tid, I);
+            const I_end = min(I_begin + I_per_thread, I);
             for i in I_begin..I_end-1 {
                 for j in 0..J-1 {
                     mylambda[j] = max(mylambda[j], vals(i,j));
@@ -214,9 +215,9 @@ module Matrices {
             b.barrier();
 
             // Divide up J amongst threads
-            var J_per_thread = (J + numThreads_g - 1) / numThreads_g;
-            var J_begin = min(J_per_thread * tid, J);
-            var J_end = min(J_begin + J_per_thread, J);
+            const J_per_thread = (J + numThreads_g - 1) / numThreads_g;
+            const J_begin = min(J_per_thread * tid, J);
+            const J_end = min(J_begin + J_per_thread, J);
             for j in J_begin..J_end-1 {
                 lambda_vals[j] = max(lambda_vals[j], 1.0);
             }
@@ -245,7 +246,7 @@ module Matrices {
     #
     #   Return:         None
     ########################################################################*/
-    proc mat_aTa(A : dense_matrix, ret : dense_matrix)
+    proc mat_aTa(const A : dense_matrix, const ret : dense_matrix)
     {
         /*  
             In SPLATT, uplo is L and trans is N. I believe this is the case
@@ -261,7 +262,7 @@ module Matrices {
         var beta : c_double = 0.0;
         syrk(A.vals, ret.vals, alpha, beta, uplo, trans, order);
     
-        for i in 1..ret.I-1 {
+        forall i in 1..ret.I-1 {
             for j in 0..i-1 {
                 ret.vals(i,j) = ret.vals(j,i);
             }
@@ -283,7 +284,7 @@ module Matrices {
     #
     #   Return:         None
     ########################################################################*/
-    proc mat_solve_normals(mode, nmodes, aTa, rhs, reg)
+    /*proc mat_solve_normals(mode, nmodes, aTa, rhs, reg)
     {
         timers_g.timers["INVERSE"].start();
 
@@ -314,7 +315,7 @@ module Matrices {
         var ldb : c_int = rhs.vals.domain.dim(1).size : c_int;
         LAPACKE_dpotrs(lapack_memory_order.row_major, uplo, N, nrhs, neqs, lda, rhs.vals, ldb);
         timers_g.timers["INVERSE"].stop();
-    }
+    }*/
     
     /*########################################################################
     #   Description:    Normalize the columns of A and return the norms in
@@ -326,7 +327,7 @@ module Matrices {
     #
     #   Return:         None
     ########################################################################*/
-    proc mat_normalize(A, lambda_vals, which, thds)
+    proc mat_normalize(A, lambda_vals, const which, const thds)
     {
         timers_g.timers["MAT NORM"].start();
         select (which) {
@@ -343,14 +344,14 @@ module Matrices {
     /*############################################################################
 
     ##############################################################################*/
-    proc calc_gram_inv(mode, nmodes, aTa)
+    proc calc_gram_inv(const mode, const nmodes, const aTa)
     {
         timers_g.timers["INVERSE"].start();
 
-        var rank = aTa[0].J;
+        const rank = aTa[0].J;
         ref av = aTa[nmodes].vals;
         
-        //av = 1.0;
+        //av = 1.0;  DOING THIS SEEMS TO BE SLIGHTLY SLOWER
         for x in 0..rank-1 {
             for y in 0..rank-1 {
                 av[x,y] = 1.0;
@@ -359,9 +360,9 @@ module Matrices {
 
         /* hadamard */
         for m in 1..nmodes-1 {
-            var madjust = (mode + m) % nmodes;
-            ref vals = aTa[madjust].vals;
-            //av *= vals;   
+            const madjust = (mode + m) % nmodes;
+            const ref vals = aTa[madjust].vals;
+            //av *= vals; DOING THIS SEEMS TO BE SLIGHTLY SLOWER
             for x in 0..rank-1 {
                 for y in 0..rank-1 {
                     av[x,y] *= vals[x,y];
@@ -378,11 +379,11 @@ module Matrices {
     /*############################################################################
 
     ##############################################################################*/
-    proc mat_syminv(A) 
+    proc mat_syminv(const A) 
     {
         assert(A.I == A.J);
 
-        var N = A.I;
+        const N = A.I;
         var L : dense_matrix = new dense_matrix();
         L.I = N;
         L.J = N;
@@ -411,15 +412,15 @@ module Matrices {
     /*############################################################################
 
     ##############################################################################*/
-    proc mat_cholesky(A, L)
+    proc mat_cholesky(const A, const L)
     {
         /* check dimensions */
         assert(A.I == A.J);
         assert(A.I == L.J);
         assert(L.I == L.J);
 
-        var N = A.I;
-        ref av = A.vals;
+        const N = A.I;
+        const ref av = A.vals;
         ref lv = L.vals;
 
         for i in 0..N-1 {
@@ -438,10 +439,10 @@ module Matrices {
         }
     }   
 
-    private proc p_mat_forwardsolve(L, B)
+    private proc p_mat_forwardsolve(const L, const B)
     {
-        var N = L.I;
-        ref lv = L.vals;
+        const N = L.I;
+        const ref lv = L.vals;
         ref bv = B.vals;
 
         /* first row of X is easy */
@@ -463,10 +464,10 @@ module Matrices {
         }
     } 
 
-    private proc p_mat_backwardsolve(U, B)
+    private proc p_mat_backwardsolve(const U, const B)
     {
-        var N = U.I;
-        ref rv = U.vals;
+        const N = U.I;
+        const ref rv = U.vals;
         ref bv = B.vals;
 
         /* last row of X is easy */

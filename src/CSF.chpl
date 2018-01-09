@@ -293,7 +293,7 @@ module CSF {
     #
     #   Return:         The level of the tree that mode is mapped to
     ########################################################################*/ 
-    proc csf_mode_to_depth(csf: splatt_csf, mode : int): int
+    proc csf_mode_to_depth(const csf: splatt_csf, const mode : int): int
     {
         assert(mode < csf.nmodes);
         return csf.dim_iperm[mode];
@@ -309,7 +309,7 @@ module CSF {
     #
     #   Return:         The actual mode in the tensor
     ########################################################################*/
-    proc csf_depth_to_mode(csf: splatt_csf, level : int): int
+    proc csf_depth_to_mode(const csf: splatt_csf, const level : int): int
     {
         assert(level < csf.nmodes);
         return csf.dim_perm[level];
@@ -323,7 +323,7 @@ module CSF {
     #
     #   Return:         real: The norm
     ########################################################################*/
-    proc csf_frobsq(tensor) : real
+    proc csf_frobsq(const tensor) : real
     {
         var norm : real = 0.0;
         var nmodes = tensor[0].nmodes;
@@ -347,7 +347,7 @@ module CSF {
     #
     #   Return:         tree_part object (array of length nparts+1).
     ########################################################################*/
-    proc csf_partition_1d(csf, tile_id, nparts)
+    proc csf_partition_1d(const csf, const tile_id, const nparts)
     {
         var nslices = csf.pt[tile_id].nfibs[0];
         var weights : [0..nslices-1] int;
@@ -379,7 +379,7 @@ module CSF {
     #
     #   Return:         The nonzeros below fptr[depth][fiber]
     ########################################################################*/
-    private proc p_csf_count_nnz(fptr, nmodes, depth, fiber) 
+    private proc p_csf_count_nnz(const fptr, const nmodes, const depth, const fiber) 
     {
         var t = depth;
         if t == nmodes-1 {

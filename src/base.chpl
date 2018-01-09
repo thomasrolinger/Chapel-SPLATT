@@ -17,30 +17,30 @@ module Base {
     *   Defaults
     *
     ******************************/
-    const MAX_NMODES: int = 8;
-    const DEFAULT_TOL: real = 1e-5;
-    const DEFAULT_NFACTORS: int  = 10;
-    const DEFAULT_ITS: int = 50;
-    const DEFAULT_CSF: string = "two";
-    const DEFAULT_REG: real = 0.0;
-    const DEFAULT_WRITE: int = 1;
-    const DEFAULT_TILE: int = 0;
+    param MAX_NMODES: int = 8;
+    param DEFAULT_TOL: real = 1e-5;
+    param DEFAULT_NFACTORS: int  = 10;
+    param DEFAULT_ITS: int = 50;
+    param DEFAULT_CSF: string = "two";
+    param DEFAULT_REG: real = 0.0;
+    param DEFAULT_WRITE: int = 1;
+    param DEFAULT_TILE: int = 0;
     const DEFAULT_NUM_THREADS: int = here.numPUs();
-    const MIN_QUICKSORT_SIZE : int = 8;
-    const SMALL_SORT_SIZE : int = 1000;
-    const DEFAULT_NNZ: int = 1000;  /** Default number of non-zeros. Used when creating
+    param MIN_QUICKSORT_SIZE : int = 8;
+    param SMALL_SORT_SIZE : int = 1000;
+    param DEFAULT_NNZ: int = 1000;  /** Default number of non-zeros. Used when creating
                                         the domains below. */
-    const SPLATT_IDX_TYPEWIDTH: int = 64;
-    const SPLATT_VAL_TYPEWIDTH: int = 64;
-    const SPLATT_SUCCESS: int = 1;
-    const RAND_MAX: int = 2147483647;
-    const DEFAULT_PRIV_THRESH : real = 0.02; 
-    const DEFAULT_NLOCKS : int = 1024;
-    const DEFAULT_LOCK_PAD : int = 8; // this is 8*8 bytes = 64 bytes. Used to prevent false sharing
-    const MAT_NORM_2 : int = 0;
-    const MAT_NORM_MAX : int = 1;
-    const REDUCE_SUM : int = 0;
-    const REDUCE_MAX : int = 1;
+    param SPLATT_IDX_TYPEWIDTH: int = 64;
+    param SPLATT_VAL_TYPEWIDTH: int = 64;
+    param SPLATT_SUCCESS: int = 1;
+    param RAND_MAX: int = 2147483647;
+    param DEFAULT_PRIV_THRESH : real = 0.02; 
+    param DEFAULT_NLOCKS : int = 1024;
+    param DEFAULT_LOCK_PAD : int = 8; // this is 8*8 bytes = 64 bytes. Used to prevent false sharing
+    param MAT_NORM_2 : int = 0;
+    param MAT_NORM_MAX : int = 1;
+    param REDUCE_SUM : int = 0;
+    param REDUCE_MAX : int = 1;
 
     // Global "numThreads" so we don't have to pass it around all the time.
     // We set this once we parse the args

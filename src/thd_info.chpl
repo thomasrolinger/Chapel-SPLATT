@@ -45,14 +45,14 @@ module ThreadInfo {
     #
     #   Return:         None
     ########################################################################*/
-    private proc p_reduce_sum(thds, scratchid, nelems, tid, b)
+    private proc p_reduce_sum(const thds, const scratchid, const nelems, const tid, const b)
     {
         ref myvals = thds[tid].scratch[scratchid].buf;
         
         var half = numThreads_g/2;
         while half > 0 {
             if tid < half && tid + half < numThreads_g {
-                ref target = thds[tid+half].scratch[scratchid].buf;
+                const ref target = thds[tid+half].scratch[scratchid].buf;
                 for i in 0..nelems-1 {
                     myvals[i] += target[i];
                 }
@@ -61,7 +61,7 @@ module ThreadInfo {
             if tid == 0 {
                 /* check for odd number */
                 if half > 1 && half % 2 == 1 {
-                    ref last = thds[half-1].scratch[scratchid].buf;
+                    const ref last = thds[half-1].scratch[scratchid].buf;
                     for i in 0..nelems-1 {
                         myvals[i] += last[i];
                     }
@@ -73,7 +73,7 @@ module ThreadInfo {
         /* account for odd thread at end */
         if tid == 0 {
             if numThreads_g % 2 == 1 {
-                ref last = thds[numThreads_g-1].scratch[scratchid].buf;
+                const ref last = thds[numThreads_g-1].scratch[scratchid].buf;
                 for i in 0..nelems-1 {
                     myvals[i] += last[i];
                 }
@@ -89,14 +89,14 @@ module ThreadInfo {
     #
     #   Return:         None
     ########################################################################*/
-    private proc p_reduce_max(thds, scratchid, nelems, tid, b)
+    private proc p_reduce_max(const thds, const scratchid, const nelems, const tid, const b)
     {
         ref myvals = thds[tid].scratch[scratchid].buf;
 
         var half = numThreads_g/2;
         while half > 0 {
             if tid < half && tid + half < numThreads_g {
-                ref target = thds[tid+half].scratch[scratchid].buf;
+                const ref target = thds[tid+half].scratch[scratchid].buf;
                 for i in 0..nelems-1 {
                     myvals[i] = max(myvals[i], target[i]);
                 }
@@ -105,7 +105,7 @@ module ThreadInfo {
             if tid == 0 {
                 /* check for odd number */
                 if half > 1 && half % 2 == 1 {
-                    ref last = thds[half-1].scratch[scratchid].buf;
+                    const ref last = thds[half-1].scratch[scratchid].buf;
                     for i in 0..nelems-1 {
                         myvals[i] = max(myvals[i], last[i]);
                     }
@@ -117,7 +117,7 @@ module ThreadInfo {
         /* account for odd thread at end */
         if tid == 0 {
             if numThreads_g % 2 == 1 {
-                ref last = thds[numThreads_g-1].scratch[scratchid].buf;
+                const ref last = thds[numThreads_g-1].scratch[scratchid].buf;
                 for i in 0..nelems-1 {
                     myvals[i] = max(myvals[i], last[i]);
                 }
@@ -142,7 +142,7 @@ module ThreadInfo {
     #
     #   Return:         Array of thd_info objects
     ########################################################################*/
-    proc thd_init(nthreads, nscratch, lengths)
+    proc thd_init(const nthreads, const nscratch, const lengths)
     {
         // For each thread, we allocate nscratch arrays that have the sizes
         // in lengths
@@ -168,7 +168,7 @@ module ThreadInfo {
     #
     #   Return:         None
     ########################################################################*/
-    proc thd_reduce(thds, scratchid, nelems, tid, b, which)
+    proc thd_reduce(const thds, const scratchid, const nelems, const tid, const b, const which)
     {
         if numThreads_g == 1 {
             return;
