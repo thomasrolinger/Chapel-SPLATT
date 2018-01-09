@@ -1,0 +1,48 @@
+****************************************************************
+splatt v2.0.0 built from b4bbad4-master
+
+Tensor information ---------------------------------------------
+FILE=/home/tbrolin/tensor_data/CHAPEL/YELP/YELP.bin
+DIMS=41090x11512x75383 NNZ=7873154 DENSITY=2.207946e-07
+COORD-STORAGE=240.27MB
+
+Factoring ------------------------------------------------------
+NFACTORS=35 MAXITS=20 TOL=1.0e-20 REG=0.0e+00 SEED=123456 THREADS=20 
+CSF-ALLOC=TWOMODE TILE=NO
+CSF-STORAGE=300.19MB FACTOR-STORAGE=34.18MB
+
+  its =   1 (0.123s)  fit = 0.00029  delta = +2.9436e-04
+  its =   2 (0.103s)  fit = 0.00493  delta = +4.6349e-03
+  its =   3 (0.099s)  fit = 0.00693  delta = +2.0053e-03
+  its =   4 (0.097s)  fit = 0.00766  delta = +7.2898e-04
+  its =   5 (0.099s)  fit = 0.00801  delta = +3.4259e-04
+  its =   6 (0.099s)  fit = 0.00823  delta = +2.2772e-04
+  its =   7 (0.099s)  fit = 0.00841  delta = +1.7684e-04
+  its =   8 (0.103s)  fit = 0.00856  delta = +1.4745e-04
+  its =   9 (0.099s)  fit = 0.00869  delta = +1.2805e-04
+  its =  10 (0.100s)  fit = 0.00880  delta = +1.1177e-04
+  its =  11 (0.099s)  fit = 0.00890  delta = +9.9655e-05
+  its =  12 (0.099s)  fit = 0.00899  delta = +9.7084e-05
+  its =  13 (0.099s)  fit = 0.00911  delta = +1.1326e-04
+  its =  14 (0.099s)  fit = 0.00923  delta = +1.2464e-04
+  its =  15 (0.099s)  fit = 0.00933  delta = +9.5781e-05
+  its =  16 (0.099s)  fit = 0.00940  delta = +6.9964e-05
+  its =  17 (0.099s)  fit = 0.00945  delta = +5.3811e-05
+  its =  18 (0.099s)  fit = 0.00950  delta = +4.6952e-05
+  its =  19 (0.098s)  fit = 0.00955  delta = +4.6721e-05
+  its =  20 (0.098s)  fit = 0.00960  delta = +4.9226e-05
+Final fit: 0.00960
+
+Timing information ---------------------------------------------
+  TOTAL               2.364s
+  CPD                 2.008s
+  MTTKRP              1.309s
+  INVERSE             0.004s
+  FIT                 0.024s
+  MAT MULT            0.169s
+  MAT A^TA            0.428s
+  MAT NORM            0.023s
+  IO                  0.046s
+  PART1D              0.000s
+  SORT                0.085s
+****************************************************************

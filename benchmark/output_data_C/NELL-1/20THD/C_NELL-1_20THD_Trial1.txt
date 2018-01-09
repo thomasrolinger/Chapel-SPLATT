@@ -1,0 +1,48 @@
+****************************************************************
+splatt v2.0.0 built from b4bbad4-master
+
+Tensor information ---------------------------------------------
+FILE=/home/tbrolin/tensor_data/CHAPEL/NELL-1/NELL-1_splatt.bin
+DIMS=2902330x2143368x25495389 NNZ=143599552 DENSITY=9.054155e-13
+COORD-STORAGE=4.28GB
+
+Factoring ------------------------------------------------------
+NFACTORS=35 MAXITS=20 TOL=1.0e-20 REG=0.0e+00 SEED=123456 THREADS=20 
+CSF-ALLOC=TWOMODE TILE=NO
+CSF-STORAGE=6.43GB FACTOR-STORAGE=7.96GB
+
+  its =   1 (17.040s)  fit = 0.19468  delta = +1.9468e-01
+  its =   2 (15.328s)  fit = 0.30199  delta = +1.0730e-01
+  its =   3 (15.481s)  fit = 0.32991  delta = +2.7920e-02
+  its =   4 (15.528s)  fit = 0.33896  delta = +9.0540e-03
+  its =   5 (15.289s)  fit = 0.34212  delta = +3.1566e-03
+  its =   6 (15.181s)  fit = 0.34306  delta = +9.4140e-04
+  its =   7 (15.278s)  fit = 0.34345  delta = +3.9320e-04
+  its =   8 (15.130s)  fit = 0.34458  delta = +1.1304e-03
+  its =   9 (14.911s)  fit = 0.34587  delta = +1.2918e-03
+  its =  10 (15.015s)  fit = 0.34652  delta = +6.4911e-04
+  its =  11 (15.165s)  fit = 0.34684  delta = +3.1701e-04
+  its =  12 (14.992s)  fit = 0.34697  delta = +1.3010e-04
+  its =  13 (15.074s)  fit = 0.34704  delta = +7.5164e-05
+  its =  14 (15.179s)  fit = 0.34717  delta = +1.2685e-04
+  its =  15 (15.211s)  fit = 0.34754  delta = +3.6761e-04
+  its =  16 (15.104s)  fit = 0.34784  delta = +2.9710e-04
+  its =  17 (15.163s)  fit = 0.34795  delta = +1.1479e-04
+  its =  18 (15.243s)  fit = 0.34800  delta = +4.7964e-05
+  its =  19 (15.360s)  fit = 0.34803  delta = +2.8128e-05
+  its =  20 (15.343s)  fit = 0.34805  delta = +2.0429e-05
+Final fit: 0.34805
+
+Timing information ---------------------------------------------
+  TOTAL               362.332s
+  CPD                 306.017s
+  MTTKRP              113.148s
+  INVERSE             0.006s
+  FIT                 8.759s
+  MAT MULT            40.133s
+  MAT A^TA            115.222s
+  MAT NORM            14.167s
+  IO                  0.811s
+  PART1D              0.033s
+  SORT                8.167s
+****************************************************************

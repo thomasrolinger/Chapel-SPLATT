@@ -58,7 +58,7 @@ TENSORDATA=${HOMEDIR}/tensor_data/CHAPEL
 OUTDIR=${THISDIR}/output_data_${LANGUAGE}
 
 # Data sets
-declare -a dataSets=("YELP")
+declare -a dataSets=("YELP" "NELL-2" "NELL-1")
 
 ######################################################################################
 #
@@ -94,7 +94,7 @@ printf "${RED} + START TIME: ${currDate}\n${NOCOLOR}"
 
 for dataSet in "${dataSets[@]}"
 do
-    DATAPATH="$TENSORDATA/${dataSet}/${dataSet}.bin"
+    DATAPATH="$TENSORDATA/${dataSet}/*.bin"
     printf "${GREEN}\t- Running on ${dataSet} data set\n${NOCOLOR}"
     OUTFILEDIR=${OUTDIR}/${dataSet}/${NUMTHREADS}THD
     OPTS=""
@@ -110,7 +110,7 @@ do
         OUTFILENAME="${LANGUAGE}_${dataSet}_${NUMTHREADS}THD_Trial${trial}.txt"
         printf "${BLUE}\t\t- [$currDate] Data Set=${dataSet}; Threads=$NUMTHREADS; Trial=$trial\n${NOCOLOR}"
         printf "${BLUE}\t\t\tOMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS}\n"
-        OMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS} > ${OUTFILEDIR}/${OUTFILENAME}
+        OMP_PROC_BIND=true OMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS} > ${OUTFILEDIR}/${OUTFILENAME}
     done
     printf "${GREEN}\t- Done\n${NOCOLOR}"
 
