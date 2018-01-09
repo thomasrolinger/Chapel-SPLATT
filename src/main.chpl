@@ -30,6 +30,9 @@ proc main(args: [] string)
     var cpdArgs : cpd_cmd_args = new cpd_cmd_args();
     cpdArgs.parseArgs(args);
 
+    // Resize factors domain
+    FACTORS_d = {0..(cpdArgs.decompRank-1)};
+
     // Seed rng
     randStream_g = new RandomStream(int(32), cpdArgs.rndSeed);
     

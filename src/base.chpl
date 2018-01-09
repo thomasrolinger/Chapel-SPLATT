@@ -73,4 +73,5 @@ module Base {
     var NUM_TILES_d : domain(1) = 0..MAX_NMODES-1;              /** Number of tiles in CSF; not known until runtime so we'll
                                                                     resize this later. */
     var LAMBDA_d : domain(1) = 0..DEFAULT_NFACTORS-1;
+    var FACTORS_d : domain(1) = 0..DEFAULT_NFACTORS-1; // commonly used domain
 }
