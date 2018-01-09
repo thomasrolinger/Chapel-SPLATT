@@ -26,3 +26,7 @@ which turns on --no-checks.
 will work. Before I couldn't get it to work because I was trying to create matrices where
 the rows had different number of elements. In a Chapel matrix, that can't happen but if it's
 stored as an array of arrays, it should work.
+
+RESULT: This works for the 2norm but that is only called for the first iteration, so it doesn't
+have a big effective on the performance of the decomposition. It doesn't seem that Chapel has a
+max norm built in.

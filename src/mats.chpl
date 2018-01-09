@@ -10,6 +10,7 @@
 module Matrices {
     use Base;
     use BLAS;
+    use Norm;
     //use LAPACK;
     use LinearAlgebra;
     //use ClassicLAPACK;
