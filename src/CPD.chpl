@@ -18,6 +18,7 @@ module CPD {
     use Time;
     use ThreadInfo;
     use Barriers;
+    use BLAS;
 
    /*****************************
     *
@@ -167,7 +168,7 @@ module CPD {
                 /* A = M1 * M2 */
                 c_memset(mats[m].vals_ref, 0, mats[m].I * mats[m].J * 8);
                 timers_g.timers["MAT MULT"].start();
-                mats[m].vals = dot(m1.vals, aTa[nmodes].vals);
+                gemm(m1.vals, aTa[nmodes].vals, mats[m].vals, 1, 0); // faster than dot
                 timers_g.timers["MAT MULT"].stop();
 
                 if it == 0 {

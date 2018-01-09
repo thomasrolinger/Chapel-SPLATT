@@ -19,6 +19,9 @@ EXEC=./bin/splatt
 SOURCES=./src/*.chpl
 
 all:
+	if [ $(GEN_C_CODE) -eq 1 ]; then \
+        mkdir -p generated_C; \
+    fi
 	$(MAKE) ${EXEC}
 	if [ $(GEN_C_CODE) -eq 1 ]; then \
 		mkdir -p generated_C/bin; \
@@ -26,7 +29,6 @@ all:
 	fi
 
 ${EXEC}: ${SOURCES}
-	mkdir -p generated_C
 	${CHPL} -o ${EXEC} ${CHPL_FLAGS} -I${INC_DIRS} -L${LIB_DIRS} ${LIBS} ${SOURCES}
 
 clean:

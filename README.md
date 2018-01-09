@@ -33,5 +33,9 @@ have a big effective on the performance of the decomposition. It doesn't seem th
 max norm built in.
 
 5.) Use BLAS for mat mul
+RESULT: Seems to be the best choice, about 1.5x faster than using dot from LinearAlgebra
 
 6.) Implement mat mul from SPLATT
+RESULT: Bad performance, wrong results
+
+7.) Use 1D arrays for all matrices. The Chapel documentation claims that this will be better
