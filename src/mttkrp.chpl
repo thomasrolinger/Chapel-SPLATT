@@ -212,12 +212,12 @@ module MTTKRP {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
         // pointers to 1D chapel arrays
-        const vals = c_ptrTo(ct.pt[tile_id].vals);
-        const sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
-        const fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
-        const sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
-        const fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
-        const inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
+        const ref vals = ct.pt[tile_id].vals;
+        const ref sptr = ct.pt[tile_id].fptr[0].subtree;
+        const ref fptr = ct.pt[tile_id].fptr[1].subtree;
+        const ref sids = ct.pt[tile_id].fids[0].fiber_ids;
+        const ref fids = ct.pt[tile_id].fids[1].fiber_ids;
+        const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
@@ -281,13 +281,12 @@ module MTTKRP {
     {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
-        // pointers to 1D chapel arrays
-        const vals = c_ptrTo(ct.pt[tile_id].vals);
-        const sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
-        const fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
-        const sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
-        const fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
-        const inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
+        const ref vals = ct.pt[tile_id].vals;
+        const ref sptr = ct.pt[tile_id].fptr[0].subtree;
+        const ref fptr = ct.pt[tile_id].fptr[1].subtree;
+        const ref sids = ct.pt[tile_id].fids[0].fiber_ids;
+        const ref fids = ct.pt[tile_id].fids[1].fiber_ids;
+        const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
@@ -347,13 +346,12 @@ module MTTKRP {
     {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
-        // pointers to 1D chapel arrays
-        const vals = c_ptrTo(ct.pt[tile_id].vals);
-        const sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
-        const fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
-        const sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
-        const fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
-        const inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
+        const ref vals = ct.pt[tile_id].vals;
+        const ref sptr = ct.pt[tile_id].fptr[0].subtree;
+        const ref fptr = ct.pt[tile_id].fptr[1].subtree;
+        const ref sids = ct.pt[tile_id].fids[0].fiber_ids;
+        const ref fids = ct.pt[tile_id].fids[1].fiber_ids;
+        const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
@@ -398,13 +396,12 @@ module MTTKRP {
     {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
-        // pointers to 1D chapel arrays
-        const vals = c_ptrTo(ct.pt[tile_id].vals);
-        const sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
-        const fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
-        const sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
-        const fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
-        const inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
+        const ref vals = ct.pt[tile_id].vals;
+        const ref sptr = ct.pt[tile_id].fptr[0].subtree;
+        const ref fptr = ct.pt[tile_id].fptr[1].subtree;
+        const ref sids = ct.pt[tile_id].fids[0].fiber_ids;
+        const ref fids = ct.pt[tile_id].fids[1].fiber_ids;
+        const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
@@ -447,13 +444,12 @@ module MTTKRP {
     {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
-        // pointers to 1D chapel arrays
-        const vals = c_ptrTo(ct.pt[tile_id].vals);
-        const sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
-        const fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
-        const sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
-        const fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
-        const inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
+        const ref vals = ct.pt[tile_id].vals;
+        const ref sptr = ct.pt[tile_id].fptr[0].subtree;
+        const ref fptr = ct.pt[tile_id].fptr[1].subtree;
+        const ref sids = ct.pt[tile_id].fids[0].fiber_ids;
+        const ref fids = ct.pt[tile_id].fids[1].fiber_ids;
+        const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
@@ -505,13 +501,12 @@ module MTTKRP {
     {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
-        // pointers to 1D chapel arrays
-        const vals = c_ptrTo(ct.pt[tile_id].vals);
-        const sptr = c_ptrTo(ct.pt[tile_id].fptr[0].subtree);
-        const fptr = c_ptrTo(ct.pt[tile_id].fptr[1].subtree);
-        const sids = c_ptrTo(ct.pt[tile_id].fids[0].fiber_ids);
-        const fids = c_ptrTo(ct.pt[tile_id].fids[1].fiber_ids);
-        const inds = c_ptrTo(ct.pt[tile_id].fids[2].fiber_ids);
+        const ref vals = ct.pt[tile_id].vals;
+        const ref sptr = ct.pt[tile_id].fptr[0].subtree;
+        const ref fptr = ct.pt[tile_id].fptr[1].subtree;
+        const ref sids = ct.pt[tile_id].fids[0].fiber_ids;
+        const ref fids = ct.pt[tile_id].fids[1].fiber_ids;
+        const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;

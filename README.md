@@ -7,6 +7,9 @@ describe the outcomes:
 RESULT: Minimal improvement, like 0.1 seconds on YELP
 
 2.) Don't use c-pointers in MTTKRP, when possible
+RESULT: No difference when doing this for the various CSF arrays but AWFUL performance
+when this is done for the factor matrices. I suspect this is because instead of doing
+pointer arithmetic to "get" to a certain row, we are doing array slicing.
 
 3.) When iterating over arrays, use its domain whenever possible
 
