@@ -25,7 +25,7 @@ module Timers {
         {
             for t in this.timers {
                 t.clear();
-            }   
+            }
         }
     
         /* Print out timers */

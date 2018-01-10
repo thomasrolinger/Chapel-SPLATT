@@ -205,7 +205,6 @@ module splatt_sort {
         tt.vals = new_vals;
         histogram_array[nslices] = tt.nnz;
 
-        //writeln("Before doing quicksort on left over modes");
         // For 3/4D we can use quicksort on only the leftover modes
         var cmplt_ptr = c_ptrTo(cmplt);
         if tt.nmodes == 3 {

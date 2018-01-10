@@ -1,7 +1,7 @@
 INC_DIRS=${CBLAS_DIR}
 LIB_DIRS=${BLAS_LIBS}
 LIBS=-lopenblas -lpthread -lgfortran
-CHPL_FLAGS=--permit-unhandled-module-errors -O --specialize --fast --no-llvm --local --mem=cstdlib --ccflags="-std=c99 -funroll-loops -fgnu89-inline -fstrict-aliasing -fPIC"
+CHPL_FLAGS=--permit-unhandled-module-errors -O --specialize --fast --no-llvm --local --mem=${CHPL_MEM} --tasks=${CHPL_TASKS} --ccflags="-std=c99 -funroll-loops -fgnu89-inline -fstrict-aliasing -fPIC"
 
 PROFILE=0
 GEN_C_CODE=0

@@ -74,4 +74,5 @@ module Base {
                                                                     resize this later. */
     var LAMBDA_d : domain(1) = 0..DEFAULT_NFACTORS-1;
     var FACTORS_d : domain(1) = 0..DEFAULT_NFACTORS-1; // commonly used domain
+
 }
