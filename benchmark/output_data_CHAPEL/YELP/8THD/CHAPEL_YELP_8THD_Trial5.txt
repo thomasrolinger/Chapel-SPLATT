@@ -16,38 +16,38 @@ CSF-STORAGE=300.19MB FACTOR-STORAGE=34.18MB
 # PRIVATIZING-MODE: 2
 # PRIVATIZATION-BUF: 24.59MB
 
-  its =  1 (0.982s)  fit = 0.00028  delta = +2.7652e-04
-  its =  2 (0.967s)  fit = 0.00501  delta = +4.7345e-03
-  its =  3 (0.963s)  fit = 0.00695  delta = +1.9395e-03
-  its =  4 (0.969s)  fit = 0.00772  delta = +7.6898e-04
-  its =  5 (0.961s)  fit = 0.00812  delta = +4.0468e-04
-  its =  6 (0.967s)  fit = 0.00841  delta = +2.8257e-04
-  its =  7 (0.966s)  fit = 0.00861  delta = +2.0525e-04
-  its =  8 (0.975s)  fit = 0.00875  delta = +1.3745e-04
-  its =  9 (0.961s)  fit = 0.00884  delta = +9.2329e-05
-  its =  10 (0.963s)  fit = 0.00891  delta = +6.7396e-05
-  its =  11 (0.962s)  fit = 0.00896  delta = +5.3735e-05
-  its =  12 (0.965s)  fit = 0.00901  delta = +4.6321e-05
-  its =  13 (0.964s)  fit = 0.00905  delta = +4.2515e-05
-  its =  14 (0.969s)  fit = 0.00909  delta = +4.1694e-05
-  its =  15 (0.969s)  fit = 0.00914  delta = +4.4675e-05
-  its =  16 (0.984s)  fit = 0.00919  delta = +5.1425e-05
-  its =  17 (0.962s)  fit = 0.00925  delta = +5.8922e-05
-  its =  18 (0.963s)  fit = 0.00931  delta = +6.4450e-05
-  its =  19 (0.962s)  fit = 0.00938  delta = +6.6483e-05
-  its =  20 (0.964s)  fit = 0.00944  delta = +6.1899e-05
+  its =  1 (0.309s)  fit = 0.00028  delta = +2.7652e-04
+  its =  2 (0.274s)  fit = 0.00501  delta = +4.7345e-03
+  its =  3 (0.304s)  fit = 0.00483  delta = -1.7868e-04
+  its =  4 (0.297s)  fit = 0.00772  delta = +2.8871e-03
+  its =  5 (0.279s)  fit = 0.00812  delta = +4.0468e-04
+  its =  6 (0.292s)  fit = 0.00841  delta = +2.8257e-04
+  its =  7 (0.305s)  fit = 0.00719  delta = -1.2148e-03
+  its =  8 (0.276s)  fit = 0.00875  delta = +1.5575e-03
+  its =  9 (0.275s)  fit = 0.00884  delta = +9.2329e-05
+  its =  10 (0.287s)  fit = 0.00563  delta = -3.2107e-03
+  its =  11 (0.308s)  fit = 0.00896  delta = +3.3319e-03
+  its =  12 (0.283s)  fit = 0.00901  delta = +4.6321e-05
+  its =  13 (0.284s)  fit = 0.00905  delta = +4.2515e-05
+  its =  14 (0.293s)  fit = 0.00909  delta = +4.1694e-05
+  its =  15 (0.304s)  fit = 0.00914  delta = +4.4675e-05
+  its =  16 (0.263s)  fit = 0.00919  delta = +5.1425e-05
+  its =  17 (0.274s)  fit = 0.00925  delta = +5.8922e-05
+  its =  18 (0.272s)  fit = 0.00709  delta = -2.1536e-03
+  its =  19 (0.269s)  fit = 0.00938  delta = +2.2845e-03
+  its =  20 (0.264s)  fit = 0.00944  delta = +6.1899e-05
 Final fit: 0.00944
 
 Timing information ---------------------------------------------
-  CPD                 19.338s
-  IO                  0.139s
-  FIT                 0.057s
-  INVERSE             0.003s
-  SORT                13.921s
-  MTTKRP              18.102s
+  CPD                 5.713s
+  IO                  0.050s
+  FIT                 0.028s
+  INVERSE             0.055s
+  SORT                1.679s
+  MTTKRP              4.128s
   PART1D              0.000s
-  MAT A^TA            0.408s
-  MAT MULT            0.486s
-  MAT NORM            0.258s
-  TOTAL               35.483s
+  MAT A^TA            0.746s
+  MAT MULT            0.635s
+  MAT NORM            0.090s
+  TOTAL               8.907s
 ****************************************************************

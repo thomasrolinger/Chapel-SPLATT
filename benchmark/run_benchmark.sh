@@ -110,7 +110,7 @@ do
         OUTFILENAME="${LANGUAGE}_${dataSet}_${NUMTHREADS}THD_Trial${trial}.txt"
         printf "${BLUE}\t\t- [$currDate] Data Set=${dataSet}; Threads=$NUMTHREADS; Trial=$trial\n${NOCOLOR}"
         printf "${BLUE}\t\t\tOMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS}\n"
-        OMP_PROC_BIND=true OMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS} > ${OUTFILEDIR}/${OUTFILENAME}
+        OMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS} > ${OUTFILEDIR}/${OUTFILENAME}
     done
     printf "${GREEN}\t- Done\n${NOCOLOR}"
 
