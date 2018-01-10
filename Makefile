@@ -1,13 +1,13 @@
 INC_DIRS=${CBLAS_DIR}
 LIB_DIRS=${BLAS_LIBS}
 LIBS=-lopenblas -lpthread -lgfortran
-CHPL_FLAGS=--permit-unhandled-module-errors -O --specialize --fast --no-llvm --local --mem=cstdlib
+CHPL_FLAGS=--permit-unhandled-module-errors -O --specialize --fast --no-llvm --local --mem=cstdlib --ccflags="-std=c99 -funroll-loops -fgnu89-inline -fstrict-aliasing -fPIC"
 
 PROFILE=0
 GEN_C_CODE=0
 
 ifeq ($(PROFILE), 1)
-	CHPL_FLAGS += --ccflags="-pg" --ldflags="-pg"
+	CHPL_FLAGS += --ccflags="-pg -g" --ldflags="-pg"
 endif
 
 ifeq ($(GEN_C_CODE), 1)

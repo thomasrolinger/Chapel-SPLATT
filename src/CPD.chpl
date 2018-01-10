@@ -191,7 +191,6 @@ module CPD {
             }
             oldfit = fit;
         }
-        
         timers_g.timers["CPD"].stop();
 
         return fit;

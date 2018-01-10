@@ -100,11 +100,12 @@ module MTTKRP {
     ******************************/
     class mttkrp_root_locked {
         //p_csf_mttkrp_root_locked
-        proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        //proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        proc func(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
         {
             const nmodes = ct.nmodes;
             if nmodes == 3 {
-                p_csf_mttkrp_root3_locked(ct, tile_id, mats, mode, thds, partition, tid);
+                p_csf_mttkrp_root3_locked(ct, tile_id, mats, m1, mode, thds, partition, tid);
                 return;
             }
         }
@@ -117,11 +118,12 @@ module MTTKRP {
     ******************************/
     class mttkrp_root_nolock {
         //p_csf_mttkrp_root_nolock
-        proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        //proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        proc func(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
         {
             const nmodes = ct.nmodes;
             if nmodes == 3 {
-                p_csf_mttkrp_root3_nolock(ct, tile_id, mats, mode, thds, partition, tid);
+                p_csf_mttkrp_root3_nolock(ct, tile_id, mats, m1, mode, thds, partition, tid);
                 return;
             }
         }
@@ -134,11 +136,12 @@ module MTTKRP {
     ******************************/
     class mttkrp_leaf_locked {
         // p_mttkrp_leaf_locked
-        proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        //proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        proc func(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
         {
             const nmodes = ct.nmodes;
             if nmodes == 3 {
-                p_csf_mttkrp_leaf3_locked(ct, tile_id, mats, mode, thds, partition, tid);
+                p_csf_mttkrp_leaf3_locked(ct, tile_id, mats, m1, mode, thds, partition, tid);
                 return;
             }
         }
@@ -151,11 +154,12 @@ module MTTKRP {
     ******************************/
     class mttkrp_leaf_nolock {
         // p_csf_mttkrp_leaf_nolock
-        proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        //proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        proc func(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
         {
             const nmodes = ct.nmodes;
             if nmodes == 3 {
-                p_csf_mttkrp_leaf3_nolock(ct, tile_id, mats, mode, thds, partition, tid);
+                p_csf_mttkrp_leaf3_nolock(ct, tile_id, mats, m1, mode, thds, partition, tid);
                 return;
             }
         } 
@@ -169,11 +173,12 @@ module MTTKRP {
     ******************************/
     class mttkrp_intl_locked {
         // p_mttkrp_intl_locked
-        proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        //proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        proc func(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
         {
             const nmodes = ct.nmodes;
             if nmodes == 3 {
-                p_csf_mttkrp_intl3_locked(ct, tile_id, mats, mode, thds, partition, tid);   
+                p_csf_mttkrp_intl3_locked(ct, tile_id, mats, m1, mode, thds, partition, tid);   
                 return;
             }
         }
@@ -186,11 +191,12 @@ module MTTKRP {
     ******************************/
     class mttkrp_intl_nolock {
         // p_csf_mttkrp_intl_nolock
-        proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        //proc func(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+        proc func(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
         {
             const nmodes = ct.nmodes;
             if nmodes == 3 {
-                p_csf_mttkrp_intl3_nolock(ct, tile_id, mats, mode, thds, partition, tid);
+                p_csf_mttkrp_intl3_nolock(ct, tile_id, mats, m1, mode, thds, partition, tid);
                 return;
             }
         }
@@ -207,7 +213,7 @@ module MTTKRP {
     *   Private Functions
     *
     ******************************/
-    private proc p_csf_mttkrp_root3_locked(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+    private proc p_csf_mttkrp_root3_locked(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
     {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
@@ -222,7 +228,8 @@ module MTTKRP {
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
         const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        const ovals = mats[nmodes].vals_ref;
+        //const ovals = mats[nmodes].vals_ref;
+        const ovals = m1.vals_ref;
 
         const nfactors = mats[nmodes].J;
 
@@ -277,7 +284,7 @@ module MTTKRP {
     }
 
     //***********************************************************************
-    private proc p_csf_mttkrp_root3_nolock(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+    private proc p_csf_mttkrp_root3_nolock(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
     {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
@@ -291,7 +298,8 @@ module MTTKRP {
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
         const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        const ovals = mats[nmodes].vals_ref;
+        //const ovals = mats[nmodes].vals_ref;
+        const ovals = m1.vals_ref;
 
         const nfactors = mats[nmodes].J;
 
@@ -342,7 +350,7 @@ module MTTKRP {
     }
     
     //***********************************************************************
-    private proc p_csf_mttkrp_leaf3_locked(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+    private proc p_csf_mttkrp_leaf3_locked(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
     {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
@@ -356,7 +364,8 @@ module MTTKRP {
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
         const bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
-        const ovals = mats[nmodes].vals_ref;
+        //const ovals = mats[nmodes].vals_ref;
+        const ovals = m1.vals_ref;
         const nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
@@ -392,7 +401,7 @@ module MTTKRP {
     }
 
     //***********************************************************************
-    private proc p_csf_mttkrp_leaf3_nolock(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+    private proc p_csf_mttkrp_leaf3_nolock(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
     {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
@@ -406,7 +415,8 @@ module MTTKRP {
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
         const bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
-        const ovals = mats[nmodes].vals_ref;
+        //const ovals = mats[nmodes].vals_ref;
+        const ovals = m1.vals_ref;
         const nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
@@ -440,7 +450,7 @@ module MTTKRP {
     }
 
     //***********************************************************************
-    private proc p_csf_mttkrp_intl3_locked(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+    private proc p_csf_mttkrp_intl3_locked(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
     {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
@@ -454,7 +464,8 @@ module MTTKRP {
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
         const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        const ovals = mats[nmodes].vals_ref;
+        //const ovals = mats[nmodes].vals_ref;
+        const ovals = m1.vals_ref;
         const nfactors = mats[nmodes].J;
         
         // pointer to 1D chapel array
@@ -497,7 +508,7 @@ module MTTKRP {
     }
 
     //***********************************************************************
-    private proc p_csf_mttkrp_intl3_nolock(const ct, const tile_id, mats, const mode, const thds, const partition, const tid)
+    private proc p_csf_mttkrp_intl3_nolock(const ct, const tile_id, mats, m1, const mode, const thds, const partition, const tid)
     {
         assert(ct.nmodes == 3);
         const nmodes = ct.nmodes;
@@ -511,7 +522,8 @@ module MTTKRP {
         // pointers to 2D chapel matrices
         const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
         const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        const ovals = mats[nmodes].vals_ref;
+        //const ovals = mats[nmodes].vals_ref;
+        const ovals = m1.vals_ref;
         const nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
@@ -606,57 +618,31 @@ module MTTKRP {
     
         /* barrier used in p_reduce_privatized */
         const b = new Barrier(numThreads_g);
+        const ref tree_partition = ws.tree_partition[csf_id].buf;
 
+        /* TEST: lift out statements from coforall */
+        var m1_mats : [0..numThreads_g-1] dense_matrix;
+        for tid in 0..numThreads_g-1 {
+            m1_mats[tid] = new dense_matrix();
+            m1_mats[tid].I = mats[nmodes].I;
+            m1_mats[tid].J = mats[nmodes].J;
+            m1_mats[tid].vals_ref = mats[nmodes].vals_ref;
+        }
         coforall tid in 0..numThreads_g-1 {
-            // this is a buffer/array, not an object
-            const ref tree_partition = ws.tree_partition[csf_id].buf;
-            /*
-                We may need to edit mats[nmodes].vals so create a
-                private copy of the pointers to edit (not the entire
-                factor matrix). Updating vals within mats_priv WILL
-                change the vals in mats.
-            */
-            var mats_priv : [0..(nmodes+1)-1] dense_matrix;
-            for m in 0..nmodes-1 {
-                mats_priv[m] = mats[m];
-            }
-            /* 
-                Each thread gets a separate structure, but do a shallow copy.
-                This is where we use the vals_ref field. Need to make sure that
-                when we want to modify vals within mats_priv[nmodes] that we
-                use vals_ref.
-            */
-            mats_priv[nmodes] = new dense_matrix();
-            mats_priv[nmodes].I = mats[nmodes].I;
-            mats_priv[nmodes].J = mats[nmodes].J;
-            mats_priv[nmodes].matrix_domain = mats[nmodes].matrix_domain;
-            mats_priv[nmodes].vals_ref = mats[nmodes].vals_ref;
-
-            /* 
-                Give each thread its own private buffer and overwrite
-                atomic function.
-            */
             if ws.is_privatized[mode] {
                 /* change (thread-private!) output structure */
                 const privBufPtr = c_ptrTo(ws.privatize_buffer[tid].buffer);
                 c_memset(privBufPtr, 0, nrows*ncols*8);
-                mats_priv[nmodes].vals_ref = privBufPtr;
+                m1_mats[tid].vals_ref = privBufPtr;
             }
 
-            /* We don't support tiling right now...*/
-            if csf.ntiles > 1 {
-                writeln("ERROR: Tiling not supported");
-            }
-            else {
-                mttkrp_func.func(csf, 0, mats_priv, mode, thds, tree_partition, tid);
-            }
+            mttkrp_func.func(csf, 0, mats, m1_mats[tid], mode, thds, tree_partition, tid);
 
             /* If we used privatization, perform a reduction */
             if ws.is_privatized[mode] {
                 p_reduce_privatized(ws, global_output, nrows, ncols, tid, b);
             }
         } /* end coforall */
-
         /* restore pointer */
         mats[nmodes].vals_ref = global_output;
     } 
@@ -827,10 +813,12 @@ module MTTKRP {
                 /* don't use atomics */
                 const mttkrp_func = new mttkrp_root_nolock();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
+                delete mttkrp_func;
             }
             else {
                 const mttkrp_func = new mttkrp_root_locked();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
+                delete mttkrp_func;
             }
         }
         else if outdepth == nmodes-1 {
@@ -839,10 +827,12 @@ module MTTKRP {
                 /* don't use atomics */
                 const mttkrp_func = new mttkrp_leaf_nolock();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
+                delete mttkrp_func;
             }
             else {
                 const mttkrp_func = new mttkrp_leaf_locked();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
+                delete mttkrp_func;
             }
         }
         else {
@@ -851,10 +841,12 @@ module MTTKRP {
                 /* don't use atomics */
                 const mttkrp_func = new mttkrp_intl_nolock();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
+                delete mttkrp_func;
             }
             else {
                 const mttkrp_func = new mttkrp_intl_locked();
                 p_schedule_tiles(tensors, which_csf, mttkrp_func, mats, mode, thds, ws);
+                delete mttkrp_func;
             }
         }
     }
