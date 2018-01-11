@@ -28,6 +28,9 @@ tail --lines=+2 output_CHAPEL.csv >> YELP.csv
 python parseTimings.py ../benchmark/output_data_CHAPEL/NELL-2/ output_CHAPEL.csv CHAPEL
 tail --lines=+2 output_CHAPEL.csv >> NELL-2.csv
 
+rm output_CHAPEL.csv
+rm output_C.csv
+
 echo""
 echo "##############################################"
 echo "+ DONE"

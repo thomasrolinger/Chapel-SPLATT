@@ -1,5 +1,6 @@
 import sys
 import os
+import numpy as np
 
 def getSubDirs(myDir):
     return [name for name in os.listdir(myDir) if os.path.isdir(os.path.join(myDir, name))]
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     fOut = open(outFile, "w")
     
     # Write out header. 
-    fOut.write("TOOL,DATASET,THREADS,CPD,MTTKRP,INVERSE,MAT MULT,MAT A^TA,MAT NORM,CPD FIT,IO,SORT,TOTAL\n")
+    fOut.write("TOOL,DATASET,THREADS,CPD,MTTKRP,INVERSE,MAT MULT,MAT A^TA,MAT NORM,CPD FIT,IO,SORT,TOTAL,MTTKRP STDV\n")
     # Get the subdirs in the top level dir. These should be the 1THD, 2THD, etc dirs
     subDirs = getSubDirs(topDir)
 
@@ -50,6 +51,7 @@ if __name__ == "__main__":
             IO = 0.0
             SORT = 0.0
             TOTAL= 0.0
+            MTTKRP_STDEV = []
             for trialFile in trialFiles:
                 try:
                     fTrial = open(trialFile, "r")
@@ -64,7 +66,9 @@ if __name__ == "__main__":
                     # Get MAT NORM time
                     MAT_NORM += [float(line.split("MAT NORM")[1].strip().split("s")[0].strip()) for line in lines if "MAT NORM" in line][0]
                     # Get MTTKRP time
-                    MTTKRP += [float(line.split("MTTKRP")[1].strip().split("s")[0].strip()) for line in lines if "MTTKRP" in line][0]
+                    MTTKRP_val = [float(line.split("MTTKRP")[1].strip().split("s")[0].strip()) for line in lines if "MTTKRP" in line][0]
+                    MTTKRP += MTTKRP_val
+                    MTTKRP_STDEV.append(MTTKRP_val)
                     # Get INVERSE time
                     INVERSE += [float(line.split("INVERSE")[1].strip().split("s")[0].strip()) for line in lines if "INVERSE" in line][0]
                     # Get MAT_MULT time
@@ -80,9 +84,10 @@ if __name__ == "__main__":
                     print("\t%s" %str(e))
                     pass
                 # Now that we processed all the files, take averages and write them out
-            fOut.write("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n" %(toolName, dataSet, str(numThreads), str(CPD/numFiles), str(MTTKRP/numFiles), \
+            fOut.write("%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n" %(toolName, dataSet, str(numThreads), str(CPD/numFiles), str(MTTKRP/numFiles), \
                                                                          str(INVERSE/numFiles), str(MAT_MULT/numFiles), str(MAT_ATA/numFiles), str(MAT_NORM/numFiles), \
-                                                                         str(CPD_FIT/numFiles), str(IO/numFiles), str(SORT/numFiles), str(TOTAL/numFiles) ) )
+                                                                         str(CPD_FIT/numFiles), str(IO/numFiles), str(SORT/numFiles), str(TOTAL/numFiles), \
+                                                                         str( np.std(np.asarray(MTTKRP_STDEV))) ) )
     
     fOut.write("\n")
     fOut.close()

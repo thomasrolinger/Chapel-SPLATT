@@ -104,7 +104,7 @@ do
     else
         OPTS="${DATAPATH} --rank=35 --seed=123456 --tol=1e-20 --iters=20 --threads=${NUMTHREADS}"
     fi
-    for trial in 1 2 3 4 5
+    for trial in 1 2 3 4 5 6 7 8 9 10
     do
         currDate=`date`
         OUTFILENAME="${LANGUAGE}_${dataSet}_${NUMTHREADS}THD_Trial${trial}.txt"

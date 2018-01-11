@@ -314,7 +314,7 @@ module CPD {
         var myinner : real = 0;
 
         const b = new Barrier(numThreads_g);
-        coforall tid in 0..numThreads_g-1 with (ref myinner) {
+        coforall tid in 0..numThreads_g-1 with (+ reduce myinner) {
             ref accumF = thds[tid].scratch[0].buf;
             accumF = 0.0;
             // Divide up dim
@@ -329,12 +329,9 @@ module CPD {
             b.barrier();
 
             /* accumulate everything into myinner */
-            //TODO: This is pretty nice. In C, the omp parallel
-            // section is set up with a +reduction on myinner, but 
-            // there needs to be a for-loop that each thread executed to
-            // accumulate into my inner. Here, we can use the built in
-            // reduction.
-            myinner += + reduce(accumF[0..rank-1] * lambda_vals); 
+            for r in 0..rank-1 {
+                myinner += accumF[r] * lambda_vals[r];
+            } 
         }
         return myinner;
     }
