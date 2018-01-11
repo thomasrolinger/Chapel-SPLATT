@@ -110,7 +110,7 @@ do
         OUTFILENAME="${LANGUAGE}_${dataSet}_${NUMTHREADS}THD_Trial${trial}.txt"
         printf "${BLUE}\t\t- [$currDate] Data Set=${dataSet}; Threads=$NUMTHREADS; Trial=$trial\n${NOCOLOR}"
         printf "${BLUE}\t\t\tOMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS}\n"
-        OMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS} > ${OUTFILEDIR}/${OUTFILENAME}
+        CHPL_RT_NUM_THREADS_PER_LOCALE=${NUMTHREADS} OMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS} > ${OUTFILEDIR}/${OUTFILENAME}
     done
     printf "${GREEN}\t- Done\n${NOCOLOR}"
 
