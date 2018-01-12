@@ -8,7 +8,9 @@ Currently how to compile Chapel code:
 $ make
 ```
 
-Executable will be in `bin/`.
+Executable will be in `bin/`. Optionally, you can pass in `PROFILE=1` to the
+above command to enable profiling with gprof. You can also pass in `GEN_C_CODE=1`
+to generate the C code that the Chapel code is compiled into.
 
 To run the benchmark, go into the `benchmark` directory and then ensure that
 the executable you wish to benchmark is in the `exces` directory. To benchmark
