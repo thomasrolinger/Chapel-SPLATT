@@ -9,15 +9,15 @@ YELLOW='\033[1;33m'
 NOCOLOR='\033[0m'
 
 # Parse the command line. We need 2 arguments: the language to benchmark
-# and the number of threads to use
+# and data set to run on
 
 show_help() 
 {
-    echo "USAGE: run_benchmark [--lang={C,CHAPEL}] [--threads=NUMTHREADS]"
+    echo "USAGE: run_benchmark [--lang={C,CHAPEL}] [--dataset=DATASET]"
 }
 
 # default values
-NUMTHREADS=1
+DATASET="YELP"
 LANGUAGE="CHAPEL"
 
 # parse arguments
@@ -31,8 +31,8 @@ for i in "${@}"; do
         --lang=*)
         LANGUAGE=${i#*=}
         ;;
-        --threads=*)
-        NUMTHREADS=${i#*=}
+        --dataset=*)
+        DATASET=${i#*=}
         ;;
         # bad argument
         *)
@@ -58,7 +58,7 @@ TENSORDATA=${HOMEDIR}/tensor_data/CHAPEL
 OUTDIR=${THISDIR}/output_data_${LANGUAGE}
 
 # Data sets
-declare -a dataSets=("YELP" "NELL-2")
+#declare -a dataSets=("YELP" "NETFLIX" "NELL-2")
 
 ######################################################################################
 #
@@ -74,9 +74,9 @@ printf "${RED}+ START TIME: ${currDate}\n\n${NOCOLOR}"
 printf "${CYAN}+ Creating output directory: $OUTDIR\n${NOCOLOR}"
 
 mkdir -p ${OUTDIR}
-for dataSet in "${dataSets[@]}"
+for i in 1 2 4 8 16
 do
-    mkdir -p ${OUTDIR}/${dataSet}/${NUMTHREADS}THD
+    mkdir -p ${OUTDIR}/${DATASET}/${i}THD
 done
 
 #######################################################################################
@@ -89,14 +89,15 @@ EXEPATH=${THISDIR}/execs
 TIME_START=`date +%s`
 currDate=`date`
 printf "${YELLOW}######################################################################################\n${NOCOLOR}"
-printf "${CYAN}+ Running tests for ${LANGUAGE} on ${NUMTHREADS} threads\n${NOCOLOR}"
+printf "${CYAN}+ Running tests for ${LANGUAGE} on ${DATASET}\n${NOCOLOR}"
 printf "${RED} + START TIME: ${currDate}\n${NOCOLOR}"
 
-for dataSet in "${dataSets[@]}"
+#for dataSet in "${dataSets[@]}"
+for NUMTHREADS in 1 2 4 8 16
 do
-    DATAPATH="$TENSORDATA/${dataSet}/*.bin"
-    printf "${GREEN}\t- Running on ${dataSet} data set\n${NOCOLOR}"
-    OUTFILEDIR=${OUTDIR}/${dataSet}/${NUMTHREADS}THD
+    DATAPATH="$TENSORDATA/${DATASET}/*.bin"
+    printf "${GREEN}\t- Running on ${NUMTHREADS} threads\n${NOCOLOR}"
+    OUTFILEDIR=${OUTDIR}/${DATASET}/${NUMTHREADS}THD
     OPTS=""
     if [ ${LANGUAGE} == "C" ];
     then
@@ -107,10 +108,16 @@ do
     for trial in 1 2 3 4 5 6 7 8 9 10
     do
         currDate=`date`
-        OUTFILENAME="${LANGUAGE}_${dataSet}_${NUMTHREADS}THD_Trial${trial}.txt"
-        printf "${BLUE}\t\t- [$currDate] Data Set=${dataSet}; Threads=$NUMTHREADS; Trial=$trial\n${NOCOLOR}"
-        printf "${BLUE}\t\t\tOMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS}\n"
-        CHPL_RT_NUM_THREADS_PER_LOCALE=${NUMTHREADS} OMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS} > ${OUTFILEDIR}/${OUTFILENAME}
+        OUTFILENAME="${LANGUAGE}_${DATASET}_${NUMTHREADS}THD_Trial${trial}.txt"
+        printf "${BLUE}\t\t- [$currDate] Data Set=${DATASET}; Threads=$NUMTHREADS; Trial=$trial\n${NOCOLOR}"
+        if [ ${LANGUAGE} == "C" ];
+        then
+            printf "${BLUE}\t\t\tOMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS}\n"
+            OMP_NUM_THREADS=${NUMTHREADS} ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS} > ${OUTFILEDIR}/${OUTFILENAME}
+        else
+            printf "${BLUE}\t\t\tCHPL_RT_NUM_THREADS_PER_LOCALE=${NUMTHREADS} OMP_NUM_THREADS=1 ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS}\n"
+            CHPL_RT_NUM_THREADS_PER_LOCALE=${NUMTHREADS} OMP_NUM_THREADS=1 ${EXEPATH}/./splatt_${LANGUAGE} ${OPTS} > ${OUTFILEDIR}/${OUTFILENAME}
+        fi
     done
     printf "${GREEN}\t- Done\n${NOCOLOR}"
 

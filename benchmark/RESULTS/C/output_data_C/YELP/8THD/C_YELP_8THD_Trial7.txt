@@ -14,17 +14,17 @@ CSF-STORAGE=300.19MB FACTOR-STORAGE=34.18MB
 PRIVATIZING-MODE: 2
 PRIVATIZATION-BUF: 24.59MB
 
-  its =   1 (0.194s)  fit = 0.00029  delta = +2.9436e-04
-  its =   2 (0.162s)  fit = 0.00493  delta = +4.6349e-03
-  its =   3 (0.163s)  fit = 0.00693  delta = +2.0053e-03
-  its =   4 (0.165s)  fit = 0.00766  delta = +7.2898e-04
-  its =   5 (0.158s)  fit = 0.00801  delta = +3.4259e-04
+  its =   1 (0.182s)  fit = 0.00029  delta = +2.9436e-04
+  its =   2 (0.153s)  fit = 0.00493  delta = +4.6349e-03
+  its =   3 (0.153s)  fit = 0.00693  delta = +2.0053e-03
+  its =   4 (0.155s)  fit = 0.00766  delta = +7.2898e-04
+  its =   5 (0.155s)  fit = 0.00801  delta = +3.4259e-04
   its =   6 (0.153s)  fit = 0.00823  delta = +2.2772e-04
-  its =   7 (0.155s)  fit = 0.00841  delta = +1.7684e-04
-  its =   8 (0.153s)  fit = 0.00856  delta = +1.4745e-04
+  its =   7 (0.153s)  fit = 0.00841  delta = +1.7684e-04
+  its =   8 (0.155s)  fit = 0.00856  delta = +1.4745e-04
   its =   9 (0.153s)  fit = 0.00869  delta = +1.2805e-04
-  its =  10 (0.154s)  fit = 0.00880  delta = +1.1177e-04
-  its =  11 (0.153s)  fit = 0.00890  delta = +9.9655e-05
+  its =  10 (0.153s)  fit = 0.00880  delta = +1.1177e-04
+  its =  11 (0.155s)  fit = 0.00890  delta = +9.9655e-05
   its =  12 (0.153s)  fit = 0.00899  delta = +9.7084e-05
   its =  13 (0.153s)  fit = 0.00911  delta = +1.1326e-04
   its =  14 (0.153s)  fit = 0.00923  delta = +1.2464e-04
@@ -37,15 +37,15 @@ PRIVATIZATION-BUF: 24.59MB
 Final fit: 0.00960
 
 Timing information ---------------------------------------------
-  TOTAL               3.650s
-  CPD                 3.137s
-  MTTKRP              2.206s
+  TOTAL               3.529s
+  CPD                 3.096s
+  MTTKRP              2.181s
   INVERSE             0.003s
-  FIT                 0.017s
-  MAT MULT            0.356s
-  MAT A^TA            0.465s
+  FIT                 0.018s
+  MAT MULT            0.345s
+  MAT A^TA            0.460s
   MAT NORM            0.041s
-  IO                  0.060s
+  IO                  0.049s
   PART1D              0.000s
-  SORT                0.157s
+  SORT                0.144s
 ****************************************************************
