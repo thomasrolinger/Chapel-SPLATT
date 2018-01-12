@@ -490,5 +490,33 @@ module Matrices {
             }    
         }
     }  
+
+    proc mat_matmul(const A, const B, const C)
+    {
+        C.I = A.I;
+        C.J = B.J;
+        const ref av = A.vals;
+        const ref bv = B.vals;
+        const M = A.I;
+        const N = B.J;
+        const Na = A.J;
+        ref cv = C.vals;
+        param TILE = 16;
+        forall i in 0..M-1 {
+            for jt in 0..N-1 by TILE {
+                for kt in 0..Na-1 by TILE {
+                    const JSTOP = min(jt+TILE, N);
+                    for j in jt..JSTOP-1 {
+                        var accum : real = 0.0;
+                        const KSTOP = min(kt+TILE, Na);
+                        for k in kt..KSTOP-1 {
+                            accum += av[i,k] * bv[k,j];
+                        }
+                        cv[i,j] += accum;
+                    }
+                }
+            }
+        }
+    }
 }
 
