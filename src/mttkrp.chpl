@@ -226,18 +226,21 @@ module MTTKRP {
         const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
-        const avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
-        const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        //const ovals = mats[nmodes].vals_ref;
+        //const avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
+        //const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
         const ovals = m1.vals_ref;
+        ref avals =  mats[csf_depth_to_mode(ct,1)].vals;
+        ref bvals = mats[csf_depth_to_mode(ct,2)].vals;
 
         const nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
-        const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        //const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        ref accumF = thds[tid].scratch[0].buf;
         
         // write to output
-        const writeF = c_ptrTo(thds[tid].scratch[2].buf);
+        //const writeF = c_ptrTo(thds[tid].scratch[2].buf);
+        ref writeF = thds[tid].scratch[2].buf;
         for r in 0..nfactors-1 {
             writeF[r] = 0.0;
         }
@@ -251,20 +254,23 @@ module MTTKRP {
                 /* first entry of the fiber is used to initialize accumF */
                 const jjfirst = fptr[f];
                 const vfirst = vals[jjfirst];
-                const bv = bvals + (inds[jjfirst] * nfactors);
+                //const bv = bvals + (inds[jjfirst] * nfactors);
+                ref bv = bvals[inds[jjfirst], 0..nfactors-1];
                 for r in 0..nfactors-1 {
                     accumF[r] = vfirst * bv[r];
                 }
                 /* for each nnz in fiber */
                 for jj in fptr[f]+1..fptr[f+1]-1 {
                     const v = vals[jj];
-                    const bv = bvals + (inds[jj] * nfactors);
+                    //const bv = bvals + (inds[jj] * nfactors);
+                    ref bv = bvals[inds[jj], 0..nfactors-1];
                     for r in 0..nfactors-1 {
                         accumF[r] += v * bv[r];
                     }
                 }
                 /* scale inner products by row of A and upate to M */
-                const av = avals + (fids[f] * nfactors);
+                //const av = avals + (fids[f] * nfactors);
+                ref av = avals[fids[f], 0..nfactors-1];
                 for r in 0..nfactors-1 {
                     writeF[r] += accumF[r] * av[r];
                 }
@@ -296,18 +302,21 @@ module MTTKRP {
         const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
-        const avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
-        const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        //const ovals = mats[nmodes].vals_ref;
+        //const avals = mats[csf_depth_to_mode(ct,1)].vals_ref;
+        //const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
+        ref avals = mats[csf_depth_to_mode(ct,1)].vals;
+        ref bvals = mats[csf_depth_to_mode(ct,2)].vals;
         const ovals = m1.vals_ref;
 
         const nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
-        const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        //const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        ref accumF = thds[tid].scratch[0].buf;
 
         // write to output
-        const writeF = c_ptrTo(thds[tid].scratch[2].buf);
+        //const writeF = c_ptrTo(thds[tid].scratch[2].buf);
+        ref writeF = thds[tid].scratch[2].buf;
         for r in 0..nfactors-1 {
             writeF[r] = 0.0;
         }
@@ -323,20 +332,23 @@ module MTTKRP {
                 /* first entry of the fiber is used to initialize accumF */
                 const jjfirst = fptr[f];
                 const vfirst = vals[jjfirst];
-                const bv = bvals + (inds[jjfirst] * nfactors);
+                //const bv = bvals + (inds[jjfirst] * nfactors);
+                ref bv = bvals[inds[jjfirst], 0..nfactors-1];
                 for r in 0..nfactors-1 {
                     accumF[r] = vfirst * bv[r];
                 }
                 /* for each nnz in fiber */
                 for jj in fptr[f]+1..fptr[f+1]-1 {
                     const v = vals[jj];
-                    const bv = bvals + (inds[jj] * nfactors);
+                    //const bv = bvals + (inds[jj] * nfactors);
+                    ref bv = bvals[inds[jj], 0..nfactors-1];
                     for r in 0..nfactors-1 {
                         accumF[r] += v * bv[r];
                     }
                 }
                 /* scale inner products by row of A and upate to M */
-                const av = avals + (fids[f] * nfactors);
+                //const av = avals + (fids[f] * nfactors);
+                ref av = avals[fids[f], 0..nfactors-1];
                 for r in 0..nfactors-1 {
                     writeF[r] += accumF[r] * av[r];
                 }
@@ -362,14 +374,16 @@ module MTTKRP {
         const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
-        const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
-        const bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
-        //const ovals = mats[nmodes].vals_ref;
+        //const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        //const bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
+        ref avals = mats[csf_depth_to_mode(ct,0)].vals;
+        ref bvals = mats[csf_depth_to_mode(ct,1)].vals;
         const ovals = m1.vals_ref;
         const nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
-        const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        //const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        ref accumF = thds[tid].scratch[0].buf;
 
         const nslices = ct.pt[tile_id].nfibs[0];
         const start = partition[tid];
@@ -378,11 +392,13 @@ module MTTKRP {
         for s in start..stop-1 {
             const fid = if sids[0] == -1 then s else sids[s];
             /* root row */
-            const rv = avals + (fid * nfactors);
+            //const rv = avals + (fid * nfactors);
+            ref rv = avals[fid, 0..nfactors-1];
             /* for each fiber in slice */
             for f in sptr[s]..sptr[s+1]-1 {
                 /* fill fiber with hada */
-                const av = bvals + (fids[f] * nfactors);
+                //const av = bvals + (fids[f] * nfactors);
+                ref av = bvals[fids[f], 0..nfactors-1];
                 for r in 0..nfactors-1 {
                     accumF[r] = rv[r] * av[r];
                 }
@@ -413,14 +429,16 @@ module MTTKRP {
         const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
-        const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
-        const bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
-        //const ovals = mats[nmodes].vals_ref;
+        //const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        //const bvals = mats[csf_depth_to_mode(ct,1)].vals_ref;
         const ovals = m1.vals_ref;
+        ref avals = mats[csf_depth_to_mode(ct,0)].vals;
+        ref bvals = mats[csf_depth_to_mode(ct,1)].vals;
         const nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
-        const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        //const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        ref accumF = thds[tid].scratch[0].buf;
 
         const nslices = ct.pt[tile_id].nfibs[0];
         const start = partition[tid];
@@ -429,11 +447,13 @@ module MTTKRP {
         for s in start..stop-1 {
             const fid = if sids[0] == -1 then s else sids[s];
             /* root row */
-            const rv = avals + (fid * nfactors);
+            //const rv = avals + (fid * nfactors);
+            ref rv = avals[fid, 0..nfactors-1];
             /* for each fiber in slice */
             for f in sptr[s]..sptr[s+1]-1 {
                 /* fill fiber with hada */
-                const av = bvals + (fids[f] * nfactors);
+                //const av = bvals + (fids[f] * nfactors);
+                ref av = bvals[fids[f], 0..nfactors-1];
                 for r in 0..nfactors-1 {
                     accumF[r] = rv[r] * av[r];
                 }
@@ -462,14 +482,16 @@ module MTTKRP {
         const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
-        const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
-        const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        //const ovals = mats[nmodes].vals_ref;
+        //const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        //const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
+        ref avals = mats[csf_depth_to_mode(ct,0)].vals;
+        ref bvals = mats[csf_depth_to_mode(ct,2)].vals;
         const ovals = m1.vals_ref;
         const nfactors = mats[nmodes].J;
         
         // pointer to 1D chapel array
-        const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        //const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        ref accumF = thds[tid].scratch[0].buf;
 
         const nslices = ct.pt[tile_id].nfibs[0];
         const start = partition[tid];
@@ -478,20 +500,23 @@ module MTTKRP {
         for s in start..stop-1 {
             const fid = if sids[0] == -1 then s else sids[s];
             /* root roow */
-            const rv = avals + (fid * nfactors);
+            //const rv = avals + (fid * nfactors);
+            ref rv = avals[fid, 0..nfactors-1];
             /* for each fiber in slice */
             for f in sptr[s]..sptr[s+1]-1 {
                 /* first entry of the fiber is used to initialize accumF */
                 const jjfirst = fptr[f];
                 const vfirst = vals[jjfirst];
-                const bv = bvals + (inds[jjfirst] * nfactors);
+                //const bv = bvals + (inds[jjfirst] * nfactors);
+                ref bv = bvals[inds[jjfirst], 0..nfactors-1];
                 for r in 0..nfactors-1 {
                     accumF[r] = vfirst * bv[r];
                 }
                 /* for each nnz in fiber */
                 for jj in (fptr[f]+1)..fptr[f+1]-1 {
                     const v = vals[jj];
-                    const bv = bvals + (inds[jj]*nfactors);
+                    //const bv = bvals + (inds[jj]*nfactors);
+                    ref bv = bvals[inds[jj], 0..nfactors-1];
                     for r in 0..nfactors-1 {
                         accumF[r] += v * bv[r];
                     }
@@ -520,14 +545,16 @@ module MTTKRP {
         const ref inds = ct.pt[tile_id].fids[2].fiber_ids;
 
         // pointers to 2D chapel matrices
-        const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
-        const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
-        //const ovals = mats[nmodes].vals_ref;
+        //const avals = mats[csf_depth_to_mode(ct,0)].vals_ref;
+        //const bvals = mats[csf_depth_to_mode(ct,2)].vals_ref;
+        ref avals = mats[csf_depth_to_mode(ct,0)].vals;
+        ref bvals = mats[csf_depth_to_mode(ct,2)].vals;
         const ovals = m1.vals_ref;
         const nfactors = mats[nmodes].J;
 
         // pointer to 1D chapel array
-        const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        //const accumF = c_ptrTo(thds[tid].scratch[0].buf);
+        ref accumF = thds[tid].scratch[0].buf;
 
         const nslices = ct.pt[tile_id].nfibs[0];
         const start = partition[tid];
@@ -536,20 +563,23 @@ module MTTKRP {
         for s in start..stop-1 {
             const fid = if sids[0] == -1 then s else sids[s];
             /* root roow */
-            const rv = avals + (fid * nfactors);
+            //const rv = avals + (fid * nfactors);
+            ref rv = avals[fid, 0..nfactors-1];
             /* for each fiber in slice */
             for f in sptr[s]..sptr[s+1]-1 {
                 /* first entry of the fiber is used to initialize accumF */
                 const jjfirst = fptr[f];
                 const vfirst = vals[jjfirst];
-                const bv = bvals + (inds[jjfirst] * nfactors);
+                //const bv = bvals + (inds[jjfirst] * nfactors);
+                ref bv = bvals[inds[jjfirst], 0..nfactors-1];
                 for r in 0..nfactors-1 {
                     accumF[r] = vfirst * bv[r];
                 }
                 /* for each nnz in fiber */
                 for jj in (fptr[f]+1)..fptr[f+1]-1 {
                     const v = vals[jj];
-                    const bv = bvals + (inds[jj]*nfactors);
+                    //const bv = bvals + (inds[jj]*nfactors);
+                    ref bv = bvals[inds[jj], 0..nfactors-1];
                     for r in 0..nfactors-1 {
                         accumF[r] += v * bv[r];
                     }
