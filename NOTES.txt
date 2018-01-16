@@ -19,7 +19,7 @@ a forall within a coforall?
 
 Having a built in lock would be great, but not entirely necessary; using sync vars isn't too bad.
 
-Do the linea algebra routines on matrices/vectors execute in parallel?
+Do the linear algebra routines on matrices/vectors execute in parallel?
 
 Be careful when directly porting OMP code that is of the form:
 
@@ -42,3 +42,22 @@ C because we just say something like:
     myType *ref = myRecords;    //myRecords is an array of myType objects
 Then whatever we do to myRecord affects ref and vice versa. But in Chapel, the above statement
 would be an array assignment, which creates a copy of myRecords. 
+
+
+Given two matrices, it is difficult to re-assign the row of one to be a row of the other. In
+C, if I have the two matrices stored as an array of pointers, then its as simple as
+
+mat1[i] = mat2[i]
+
+But in Chapel, if you try to do this with array slicing:
+
+mat1[i, ..] = mat2[i, ..]
+
+The performance is terrible because array slicing is so slow. So you need to
+get C pointers to the matrices and then use pointer arithmetic. Another solution
+is to have a Chapel array of arrays. This still requires getting pointers as you
+don't want to do a copy, but it does make it cleaner.
+
+In general, array creation is expensive. Creating an array of 2 ints is expensive
+enough when done enough times (i.e. quicksort) to make a considerable difference
+(2.5x).

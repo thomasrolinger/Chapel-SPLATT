@@ -620,7 +620,7 @@ module CSF {
 
         // Get pointers to arrays so we can do some memcpys
         var fidsPtr = c_ptrTo(pt.fids[nmodes-1].fiber_ids);
-        var indPtr = c_ptrTo(tt.ind[ct.dim_perm[nmodes-1],0..ct.nnz-1]);
+        var indPtr = c_ptrTo(tt.ind[ct.dim_perm[nmodes-1]]);
         var ptValsPtr = c_ptrTo(pt.vals);
         var ttValsPtr = c_ptrTo(tt.vals);
         c_memcpy(fidsPtr, indPtr, ct.nnz*8);
@@ -683,7 +683,7 @@ module CSF {
 
         // the mode after accounting for dim_perm
         // Get a c ptr to it to make this easier
-        var indPtr = c_ptrTo(tt.ind[ct.dim_perm[mode],0..ct.nnz-1]);
+        var indPtr = c_ptrTo(tt.ind[ct.dim_perm[mode]]);
         var ttind = indPtr + nnzstart;       
  
         // grab sparsity pattern
@@ -761,7 +761,7 @@ module CSF {
     
         // the mode after accounting for dim_perm
         // Get a c ptr to it to make this easier
-        var indPtr = c_ptrTo(tt.ind[ct.dim_perm[0],0..ct.nnz-1]);
+        var indPtr = c_ptrTo(tt.ind[ct.dim_perm[0]]);
         var ttind = indPtr + nnzstart;
 
         // count fibers

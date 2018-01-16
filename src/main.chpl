@@ -30,9 +30,6 @@ proc main(args: [] string)
     var cpdArgs : cpd_cmd_args = new cpd_cmd_args();
     cpdArgs.parseArgs(args);
 
-    // Resize factors domain
-    FACTORS_d = {0..(cpdArgs.decompRank-1)};
-
     // Seed rng
     randStream_g = new RandomStream(int(32), cpdArgs.rndSeed);
     
@@ -57,7 +54,7 @@ proc main(args: [] string)
     // two : csf[0] and csf[1]
     // all : all elements in csf
     var csf = csf_alloc(tt, cpdArgs);
-
+     
     var nmodes : int = tt.nmodes;
 
     // Now that the CSF is built, we no longer need the sptensor tt
@@ -79,4 +76,5 @@ proc main(args: [] string)
     timers_g.timers["TOTAL"].stop();
     timers_g.report_times();
     writeln("****************************************************************");
+    
 }

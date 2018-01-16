@@ -118,7 +118,6 @@ module splatt_IO {
         // Update the domains in the Base module to use the actual sizes
         NNZ_d = 0..nnz-1;
         NUM_MODES_d = 0..nmodes-1;
-        COORD_d = {0..nmodes-1, 0..nnz-1};
 
         if nmodes > MAX_NMODES {
             writeln("ERROR: maximum number of modes supported is ", MAX_NMODES);
@@ -142,7 +141,7 @@ module splatt_IO {
         }   
         tt.nnz = nnz;
         for m in 0..nmodes-1 {
-            p_fill_binary_idx(tt.ind[m,0..nnz-1], nnz, header, fin, startPos);
+            p_fill_binary_idx(tt.ind[m], nnz, header, fin, startPos);
         }
         p_fill_binary_val(tt.vals, nnz, header, fin, startPos);
     }
