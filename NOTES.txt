@@ -61,3 +61,14 @@ don't want to do a copy, but it does make it cleaner.
 In general, array creation is expensive. Creating an array of 2 ints is expensive
 enough when done enough times (i.e. quicksort) to make a considerable difference
 (2.5x).
+
+You cannot store an array of arrays where the sub-arrays have different sizes. This
+is taken from a Stackoverflow post dated July 14 2017:
+W.r.t. "jagged arrays": While Chapel was designed such that arrays-of-arrays could be used for "jagged"/"skyline" arrays (ones in which the subarrays have different sizes), the current implementation only supports cases in which the inner arrays all share the same domain (index set). This means that in practice such arrays will still be (virtually) rectangular at present. The typical workaround for representing a truly jagged array is to store an array of objects where each stores its own domain/array fields---this permits the different sub-arrays to have different sizes
+
+This is exactly what we do, so we're good.
+
+
+dgemm is actually working fine in Chapel. It's just that our matrices are very rectangular, which I think is not
+how BLAS is generally optimized. I suspect that each dimension needs to be a certain size before it can be fully
+advantageous.

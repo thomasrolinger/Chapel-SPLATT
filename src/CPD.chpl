@@ -170,11 +170,6 @@ module CPD {
                 timers_g.timers["MAT MULT"].start();
                 //gemm(m1.vals, aTa[nmodes].vals, mats[m].vals, 1, 0); // faster than dot
                 //mats[m].vals = dot(m1.vals, aTa[nmodes].vals);
-                /*
-                    TODO: I can't seem to be able to control the parallelism in the BLAS gemm routine
-                    above. No matter what I set OMP_NUM_THREADS to, the execution time seems to remain the
-                    same. To make comparisons easier, I will use the same mat-mul that SPLATT-C uses.
-                */
                 mat_matmul(m1, aTa[nmodes], mats[m]);
                 timers_g.timers["MAT MULT"].stop();
 
