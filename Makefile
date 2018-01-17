@@ -5,13 +5,17 @@ CHPL_FLAGS=--permit-unhandled-module-errors -O --specialize --fast --no-llvm --l
 
 PROFILE=0
 GEN_C_CODE=0
-
+DEBUG=0
 ifeq ($(PROFILE), 1)
 	CHPL_FLAGS += --ccflags="-pg -g" --ldflags="-pg"
 endif
 
 ifeq ($(GEN_C_CODE), 1)
 	CHPL_FLAGS += --savec=${PWD}/generated_C/src
+endif
+
+ifeq ($(DEBUG), 1)
+    CHPL_FLAGS += --ccflags="-g" --ldflags="-g"
 endif
 
 CHPL=chpl
