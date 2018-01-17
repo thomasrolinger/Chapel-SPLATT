@@ -1,0 +1,54 @@
+****************************************************************
+SPLATT + Chapel v1.0
+****************************************************************
+
+Tensor information ---------------------------------------------
+FILE=/home/tbrolin/tensor_data/CHAPEL/NETFLIX/NETFLIX.bin
+DIMS=480189x17770x2182 NNZ=100480507 DENSITY=5.39669e-06
+COORD-STORAGE=2.99GB
+
+
+Factoring ------------------------------------------------------
+NFACTORS=35 MAXITS=20 TOL=1.0e-20 REG=0.0e+00 SEED=123456 THREADS=16
+CSF-ALLOC=TWOMODE TILE=NO
+CSF-STORAGE=3.78GB FACTOR-STORAGE=133.55MB
+
+# PRIVATIZING-MODE: 2
+# PRIVATIZING-MODE: 3
+# PRIVATIZATION-BUF: 75.92MB
+
+  its =  1 (1.292s)  fit = 0.00016  delta = +1.6405e-04
+  its =  2 (1.257s)  fit = 0.00308  delta = +2.9201e-03
+  its =  3 (1.225s)  fit = 0.00419  delta = +1.1080e-03
+  its =  4 (1.241s)  fit = 0.00463  delta = +4.3421e-04
+  its =  5 (1.230s)  fit = 0.00488  delta = +2.4895e-04
+  its =  6 (1.241s)  fit = 0.00511  delta = +2.3086e-04
+  its =  7 (1.226s)  fit = 0.00529  delta = +1.8639e-04
+  its =  8 (1.232s)  fit = 0.00538  delta = +8.6808e-05
+  its =  9 (1.288s)  fit = 0.00543  delta = +5.4677e-05
+  its =  10 (1.273s)  fit = 0.00547  delta = +4.0571e-05
+  its =  11 (1.234s)  fit = 0.00551  delta = +3.1804e-05
+  its =  12 (1.240s)  fit = 0.00553  delta = +2.5595e-05
+  its =  13 (1.230s)  fit = 0.00555  delta = +2.0636e-05
+  its =  14 (1.239s)  fit = 0.00557  delta = +1.6621e-05
+  its =  15 (1.230s)  fit = 0.00558  delta = +1.3432e-05
+  its =  16 (1.243s)  fit = 0.00559  delta = +1.0928e-05
+  its =  17 (1.250s)  fit = 0.00560  delta = +9.1115e-06
+  its =  18 (1.224s)  fit = 0.00561  delta = +7.9287e-06
+  its =  19 (1.236s)  fit = 0.00562  delta = +7.0115e-06
+  its =  20 (1.262s)  fit = 0.00562  delta = +5.8466e-06
+Final fit: 0.00562
+
+Timing information ---------------------------------------------
+  CPD                 24.893s
+  IO                  0.319s
+  FIT                 0.002s
+  INVERSE             0.023s
+  SORT                39.250s
+  MTTKRP              21.877s
+  PART1D              0.000s
+  MAT A^TA            1.868s
+  MAT MULT            0.839s
+  MAT NORM            0.163s
+  TOTAL               70.583s
+****************************************************************
