@@ -113,7 +113,7 @@ module splatt_sort {
         var nslices : int = tt.dims[m];
         
         // Matrix with nmodes rows and nnz columns
-        var new_ind : [COORD_d] int;
+        var new_ind : [NUM_MODES_d][NNZ_d] int;
 
         // Array with nnz elements
         var new_vals : [NNZ_d] real;
@@ -141,7 +141,7 @@ module splatt_sort {
 
             // count
             for j in jbegin..jend-1 {
-                var idx: int = tt.ind[m,j];
+                var idx: int = tt.ind[m][j];
                 histogram[idx] += 1;
             }
             
@@ -184,21 +184,23 @@ module splatt_sort {
             for j_off in 0..(jend-jbegin)-1 {
                 // we are actually going backwards
                 var j : int = jend-j_off-1; 
-                var idx : int = tt.ind[m,j];
+                var idx : int = tt.ind[m][j];
                 histogram[idx] -= 1;
                 var offset : int = histogram[idx];
                 new_vals[offset] = tt.vals[j];
                 for mode in 0..tt.nmodes-1 {
                     if mode != m {
-                        new_ind[mode,offset] = tt.ind[mode,j];
+                        new_ind[mode][offset] = tt.ind[mode][j];
                     }
                 }
             }
         } /* coforall end */
  
+        const ttIndPtr = c_ptrTo(tt.ind);
+        const newIndPtr = c_ptrTo(new_ind);
         for i in 0..tt.nmodes-1 {
             if i != m {
-                tt.ind[i,0..tt.nnz-1] = new_ind[i,0..tt.nnz-1];
+                ttIndPtr[i] = new_ind[i];
             }
         }
 
@@ -211,7 +213,7 @@ module splatt_sort {
             forall i in 0..nslices-1 {
                 p_tt_quicksort2(tt, cmplt_ptr+1, histogram_array[i], histogram_array[i+1]);
                 for j in histogram_array[i]..histogram_array[i+1]-1 {
-                    tt.ind[m,j] = i;
+                    tt.ind[m][j] = i;
                 }
             }
         }
@@ -219,7 +221,7 @@ module splatt_sort {
             forall i in 0..nslices-1 {
                 p_tt_quicksort3(tt, cmplt_ptr+1, histogram_array[i], histogram_array[i+1]);
                 for j in histogram_array[i]..histogram_array[i+1]-1 {
-                    tt.ind[m,j] = i;
+                    tt.ind[m][j] = i;
                 }
             }
         }
@@ -233,7 +235,7 @@ module splatt_sort {
             forall i in 0..nslices-1 {
                 p_tt_quicksort(tt, cmplt, histogram_array[i], histogram_array[i+1]);
                 for j in histogram_array[i]..histogram_array[i+1]-1 {
-                    tt.ind[m,j] = i;
+                    tt.ind[m][j] = i;
                 }
             }
             // undo cmplt changes
@@ -270,11 +272,13 @@ module splatt_sort {
     private proc p_tt_quicksort2(tt : sptensor_t, cmplt, start : int, end : int)
     {
         var vmid : real;
-        var imid : [0..1] int;
+        //var imid : [0..1] int;
+        var imid0 : int;
+        var imid1 : int;
 
-        var ind0 = c_ptrTo(tt.ind[cmplt[0], 0..tt.nnz-1]);
-        var ind1 = c_ptrTo(tt.ind[cmplt[1], 0..tt.nnz-1]);
-        var vals = c_ptrTo(tt.vals);
+        ref ind0 = tt.ind[cmplt[0]];
+        ref ind1 = tt.ind[cmplt[1]];
+        ref vals = tt.vals;
 
         if (end-start) <= MIN_QUICKSORT_SIZE {
             p_tt_insertionsort2(tt, cmplt, start, end);
@@ -287,16 +291,16 @@ module splatt_sort {
             // grab pivot
             vmid = vals[k];
             vals[k] = vals[start];
-            imid[0] = ind0[k];
-            imid[1] = ind1[k];
+            imid0 = ind0[k];
+            imid1 = ind1[k];
             ind0[k] = ind0[start];
             ind1[k] = ind1[start];
 
             while i < j {
                 // if tt[i] > mid --> tt[i] is on wrong side
-                if p_ttqcmp2(ind0, ind1, i, imid) == 1 {
+                if p_ttqcmp2(ind0, ind1, i, imid0, imid1) == 1 {
                     // if tt[j] <= mid --> swap tt[i] and tt[j]
-                    if p_ttqcmp2(ind0, ind1, j, imid) < 1 {
+                    if p_ttqcmp2(ind0, ind1, j, imid0, imid1) < 1 {
                         var vtmp = vals[i];
                         vals[i] = vals[j];
                         vals[j] = vtmp;
@@ -312,7 +316,7 @@ module splatt_sort {
                 }
                 else {
                     // if tt[j] > mid --> tt[j] is on right side
-                    if p_ttqcmp2(ind0, ind1, j, imid) == 1 {
+                    if p_ttqcmp2(ind0, ind1, j, imid0, imid1) == 1 {
                         j -= 1;
                     }
                     i += 1;
@@ -320,15 +324,15 @@ module splatt_sort {
             }
 
             // if tt[i] > mid
-            if p_ttqcmp2(ind0, ind1, i, imid) == 1 {
+            if p_ttqcmp2(ind0, ind1, i, imid0, imid1) == 1 {
                 i -= 1;
             }
             vals[start] = vals[i];
             vals[i] = vmid;
             ind0[start] = ind0[i];
             ind1[start] = ind1[i];
-            ind0[i] = imid[0];
-            ind1[i] = imid[1];
+            ind0[i] = imid0;
+            ind1[i] = imid1;
             if i > start+1 {
                 p_tt_quicksort2(tt, cmplt, start, i);
             }
@@ -356,9 +360,9 @@ module splatt_sort {
         var vmid : real;
         var imid : [0..2] int;
 
-        var ind0 = c_ptrTo(tt.ind[cmplt[0], 0..tt.nnz-1]);
-        var ind1 = c_ptrTo(tt.ind[cmplt[1], 0..tt.nnz-1]);
-        var ind2 = c_ptrTo(tt.ind[cmplt[2], 0..tt.nnz-1]);
+        var ind0 = c_ptrTo(tt.ind[cmplt[0]]);
+        var ind1 = c_ptrTo(tt.ind[cmplt[1]]);
+        var ind2 = c_ptrTo(tt.ind[cmplt[2]]);
         var vals = c_ptrTo(tt.vals);
 
         if (end-start) <= MIN_QUICKSORT_SIZE {
@@ -448,7 +452,7 @@ module splatt_sort {
         var vmid : real;
         var imid : [NUM_MODES_d] int;
 
-        var ind = c_ptrTo(tt.ind[0, 0..tt.nnz-1]);
+        var ind = c_ptrTo(tt.ind[0]);
         var vals = c_ptrTo(tt.vals);
         var nmodes = tt.nmodes;
 
@@ -464,7 +468,7 @@ module splatt_sort {
             vmid = vals[k];
             vals[k] = vals[start];
             for m in 0..nmodes-1 {
-                ind = c_ptrTo(tt.ind[m, 0..tt.nnz-1]);
+                ind = c_ptrTo(tt.ind[m]);
                 imid[m] = ind[k];
                 ind[k] = ind[start];
             }
@@ -489,7 +493,7 @@ module splatt_sort {
             vals[start] = vals[i];
             vals[i] = vmid;
             for m in 0..nmodes-1 {
-                ind = c_ptrTo(tt.ind[m,0..tt.nnz-1]);
+                ind = c_ptrTo(tt.ind[m]);
                 ind[start] = ind[i];
                 ind[i] = imid[m];
             }
@@ -517,9 +521,9 @@ module splatt_sort {
     ########################################################################*/
     private proc p_tt_insertionsort2(tt : sptensor_t, cmplt, start : int, end : int)
     {
-        var ind0 = c_ptrTo(tt.ind[cmplt[0], 0..tt.nnz-1]);
-        var ind1 = c_ptrTo(tt.ind[cmplt[1], 0..tt.nnz-1]);
-        var vals = c_ptrTo(tt.vals);
+        const ind0 = c_ptrTo(tt.ind[cmplt[0]]);
+        const ind1 = c_ptrTo(tt.ind[cmplt[1]]);
+        const vals = c_ptrTo(tt.vals);
         var vbuf : real;
         var ibuf : int;
 
@@ -556,9 +560,9 @@ module splatt_sort {
     ########################################################################*/
     private proc p_tt_insertionsort3(tt : sptensor_t, cmplt, start : int, end : int)
     {
-        var ind0 = c_ptrTo(tt.ind[cmplt[0], 0..tt.nnz-1]);
-        var ind1 = c_ptrTo(tt.ind[cmplt[1], 0..tt.nnz-1]);
-        var ind2 = c_ptrTo(tt.ind[cmplt[2], 0..tt.nnz-1]);
+        var ind0 = c_ptrTo(tt.ind[cmplt[0]]);
+        var ind1 = c_ptrTo(tt.ind[cmplt[1]]);
+        var ind2 = c_ptrTo(tt.ind[cmplt[2]]);
         var vals = c_ptrTo(tt.vals);
         var vbuf : real;
         var ibuf : int;
@@ -599,7 +603,7 @@ module splatt_sort {
     ########################################################################*/
     private proc p_tt_insertionsort(tt : sptensor_t, cmplt, start : int, end : int)
     {
-        var ind = c_ptrTo(tt.ind[0, 0..tt.nnz-1]);
+        var ind = c_ptrTo(tt.ind[0]);
         var vals = c_ptrTo(tt.vals);
         var nmodes = tt.nmodes;
         var vbuf : real;
@@ -616,7 +620,7 @@ module splatt_sort {
             c_memmove(vals+j+1, vals+j, (i-j)*8);
             vals[j] = vbuf;
             for m in 0..nmodes-1 {
-                ind = c_ptrTo(tt.ind[m, 0..tt.nnz-1]);
+                ind = c_ptrTo(tt.ind[m]);
                 ibuf = ind[i];
                 c_memmove(ind+j+1, ind+j, (i-j)*8);
                 ind[j] = ibuf;
@@ -698,10 +702,10 @@ module splatt_sort {
     private proc p_ttcmp(tt: sptensor_t, cmplt, i : int, j: int)
     {
         for m in 0..tt.nmodes-1 {
-            if tt.ind[cmplt[m], i] < tt.ind[cmplt[m], j] {
+            if tt.ind[cmplt[m]][i] < tt.ind[cmplt[m]][j] {
                 return -1;
             }
-            else if tt.ind[cmplt[m], j] < tt.ind[cmplt[m], i] {
+            else if tt.ind[cmplt[m]][j] < tt.ind[cmplt[m]][i] {
                 return 1;
             }
         }
@@ -718,18 +722,18 @@ module splatt_sort {
     #
     #   Return:         -1 if ind[i] < j, 1 if ind[i] > j, 0 if equal
     ########################################################################*/
-    private proc p_ttqcmp2(ind0, ind1, i : int, j)
+    private proc p_ttqcmp2(const ind0, const ind1, const i : int, const j0, const j1)
     {
-        if ind0[i] < j[0] {
+        if ind0[i] < j0 {
             return -1;
         }
-        else if j[0] < ind0[i] {
+        else if j0 < ind0[i] {
             return 1;
         }
-        if ind1[i] < j[1] {
+        if ind1[i] < j1 {
             return -1;
         }
-        else if j[1] < ind1[i] {
+        else if j1 < ind1[i] {
             return 1;
         }
         return 0;
@@ -782,10 +786,10 @@ module splatt_sort {
     private proc p_ttqcmp(tt: sptensor_t, cmplt, i : int, j)
     {
         for m in 0..tt.nmodes-1 {
-            if tt.ind[cmplt[m], i] < j[cmplt[m]] {
+            if tt.ind[cmplt[m]][i] < j[cmplt[m]] {
                 return -1;
             }
-            else if j[cmplt[m]] < tt.ind[cmplt[m], i] {
+            else if j[cmplt[m]] < tt.ind[cmplt[m]][i] {
                 return 1;
             }
         }
@@ -808,9 +812,9 @@ module splatt_sort {
         tt.vals[j] = vtmp;
         var itmp : int;
         for m in 0..tt.nmodes-1 {
-            itmp = tt.ind[m,i];
-            tt.ind[m,i] = tt.ind[m,j];
-            tt.ind[m,j] = itmp;
+            itmp = tt.ind[m][i];
+            tt.ind[m][i] = tt.ind[m][j];
+            tt.ind[m][j] = itmp;
         }
     }
 }
