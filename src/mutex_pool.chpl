@@ -41,7 +41,8 @@ module MutexPool {
         var num_locks : int;
         var pad_size : int;
         var locks_d : domain(1) = 0..(DEFAULT_NLOCKS * DEFAULT_LOCK_PAD)-1;
-        var locks : [locks_d] sync bool;
+        //var locks : [locks_d] sync bool;
+        var locks : [locks_d] atomic bool;
     }
 
     /*****************************
@@ -57,7 +58,8 @@ module MutexPool {
         pool.pad_size = pad_size;
         for l in 0..num_locks-1 {    
             const lock = mutex_translate_id(l, num_locks, pad_size);
-            pool.locks[lock].writeXF(true);
+            //pool.locks[lock].writeXF(true);
+            pool.locks[lock].clear();
         }
         return pool;
     }
@@ -95,7 +97,10 @@ module MutexPool {
         // sets the sync var to empty and means no other task will be able
         // to "set the lock" until I unset it (i.e. write to it).
         const lock_id = mutex_translate_id(id, pool.num_locks, pool.pad_size);
-        pool.locks[lock_id];
+        //pool.locks[lock_id];
+        while pool.locks[lock_id].testAndSet() {
+            chpl_task_yield();
+        }
     }
 
     /*########################################################################
@@ -110,6 +115,7 @@ module MutexPool {
     {
         // To unset the lock, we write to it. This sets it from empty to full.
         const lock_id = mutex_translate_id(id, pool.num_locks, pool.pad_size);
-        pool.locks[lock_id].writeXF(true);
+        //pool.locks[lock_id].writeXF(true);
+        pool.locks[lock_id].clear();
     }
 }

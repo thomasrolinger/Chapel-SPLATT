@@ -603,12 +603,12 @@ module CSF {
         NUM_TILES_d = 0..ct.ntiles-1;
 
         ct.pt[0] = new csf_sparsity();
-        var pt = ct.pt[0];
+        ref pt = ct.pt[0];
 
         // last row of fptr is just nonzero inds
         pt.nfibs[nmodes-1] = ct.nnz;
         // Resize CSF_SPARSITY_VALS_d to be size nfibs[nmodes-1]
-        CSF_SPARSITY_VALS_d = 0..pt.nfibs[nmodes-1];
+        CSF_SPARSITY_VALS_d = 0..pt.nfibs[nmodes-1]-1;
         // Create fiber_ids and subtrees for each mode
         for m in 0..nmodes-1 {
             pt.fids[m] = new csf_fiber_ids();

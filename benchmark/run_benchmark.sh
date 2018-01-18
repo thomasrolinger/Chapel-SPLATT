@@ -74,7 +74,7 @@ printf "${RED}+ START TIME: ${currDate}\n\n${NOCOLOR}"
 printf "${CYAN}+ Creating output directory: $OUTDIR\n${NOCOLOR}"
 
 mkdir -p ${OUTDIR}
-for i in 1 2 4 8 16
+for i in 1 2 4 8 16 32
 do
     mkdir -p ${OUTDIR}/${DATASET}/${i}THD
 done
@@ -93,7 +93,7 @@ printf "${CYAN}+ Running tests for ${LANGUAGE} on ${DATASET}\n${NOCOLOR}"
 printf "${RED} + START TIME: ${currDate}\n${NOCOLOR}"
 
 #for dataSet in "${dataSets[@]}"
-for NUMTHREADS in 1 2 4 8 16
+for NUMTHREADS in 1 2 4 8 16 32
 do
     DATAPATH="$TENSORDATA/${DATASET}/*.bin"
     printf "${GREEN}\t- Running on ${NUMTHREADS} threads\n${NOCOLOR}"
