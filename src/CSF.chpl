@@ -711,6 +711,7 @@ module CSF {
         // Resize this mode's subtree size and fiber ids size
         pt.fptr[mode].subtree_d = 0..(nfibs+1)-1;
         pt.fids[mode].fiber_ids_d = 0..nfibs-1;
+        
 
         var fpPtr = c_ptrTo(pt.fptr[mode].subtree);
         var fiPtr = c_ptrTo(pt.fids[mode].fiber_ids);
@@ -793,6 +794,7 @@ module CSF {
         */
         if ct.ntiles <= 1 {
             pt.fids[0].fiber_ids_d = 0..0;
+            fiPtr = c_ptrTo(pt.fids[0].fiber_ids);
             pt.fids[0].fiber_ids[0] = -1;
         }
         fpPtr[0] = 0;
