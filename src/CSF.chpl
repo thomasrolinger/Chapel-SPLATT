@@ -793,6 +793,7 @@ module CSF {
         */
         if ct.ntiles <= 1 {
             pt.fids[0].fiber_ids_d = 0..0;
+            fiPtr = c_ptrTo(pt.fids[0].fiber_ids);
             pt.fids[0].fiber_ids[0] = -1;
         }
         fpPtr[0] = 0;
