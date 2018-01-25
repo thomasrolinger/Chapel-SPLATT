@@ -153,13 +153,6 @@ module Matrices {
         
             b.barrier();
 
-            // Divide up J amongst threads
-            /*const J_per_thread = (J + numThreads_g - 1) / numThreads_g;
-            const J_begin = min(J_per_thread * tid, J);
-            const J_end = min(J_begin + J_per_thread, J);
-            for j in J_begin..J_end-1 {
-                lambda_vals[j] = sqrt(lambda_vals[j]);
-            }*/
             lambda_vals = sqrt(lambda_vals);   
             
 
@@ -493,6 +486,7 @@ module Matrices {
 
     proc mat_matmul(const A, const B, const C)
     {
+        timers_g.timers["MAT MULT"].start(); 
         C.I = A.I;
         C.J = B.J;
         const ref av = A.vals;
@@ -501,7 +495,8 @@ module Matrices {
         const N = B.J;
         const Na = A.J;
         ref cv = C.vals;
-        param TILE = 16;
+        const TILE = 16;
+
         forall i in 0..M-1 {
             for jt in 0..N-1 by TILE {
                 for kt in 0..Na-1 by TILE {
@@ -517,6 +512,7 @@ module Matrices {
                 }
             }
         }
+        timers_g.timers["MAT MULT"].stop();
     }
 }
 

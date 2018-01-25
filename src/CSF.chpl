@@ -168,7 +168,6 @@ module CSF {
                 */
                 var oldTile = args.tiling;
                 args.tiling = 0;
-                //last_mode = ret[0].dim_perm[tt.nmodes-1];
                 last_mode = csf_depth_to_mode(ret[0], tt.nmodes-1);
                 p_mk_csf(ret[1], tt, csf_mode_type.CSF_SORTED_MINUSONE, last_mode, args);
                 args.tiling = oldTile;            

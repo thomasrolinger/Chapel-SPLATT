@@ -76,5 +76,5 @@ proc main(args: [] string)
     timers_g.timers["TOTAL"].stop();
     timers_g.report_times();
     writeln("****************************************************************");
-    
+
 }

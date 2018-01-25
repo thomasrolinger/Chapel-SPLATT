@@ -72,21 +72,7 @@ module splatt_sort {
         }
 
         timers_g.timers["SORT"].start();
-        if start == 0 && end == tt.nnz {
-            p_counting_sort_hybrid(tt, cmplt);
-        }
-        else {
-            // sort a subtensor
-            var cmplt_ptr = c_ptrTo(cmplt);
-            select(tt.tensorType) {
-                when tt_type.SPLATT_NMODE {
-                    p_tt_quicksort(tt, cmplt_ptr, start, end);
-                } 
-                when tt_type.SPLATT_3MODE {
-                    p_tt_quicksort3(tt, cmplt_ptr, start, end);
-                }
-            }
-        }
+        p_counting_sort_hybrid(tt, cmplt);
         timers_g.timers["SORT"].stop();
     }
 
@@ -207,41 +193,13 @@ module splatt_sort {
         tt.vals = new_vals;
         histogram_array[nslices] = tt.nnz;
 
-        // For 3/4D we can use quicksort on only the leftover modes
+        // For now, we only support 3-mode tensors
         var cmplt_ptr = c_ptrTo(cmplt);
-        if tt.nmodes == 3 {
-            forall i in 0..nslices-1 {
-                p_tt_quicksort2(tt, cmplt_ptr+1, histogram_array[i], histogram_array[i+1]);
-                for j in histogram_array[i]..histogram_array[i+1]-1 {
-                    tt.ind[m][j] = i;
-                }
+        forall i in 0..nslices-1 {
+            p_tt_quicksort2(tt, cmplt_ptr+1, histogram_array[i], histogram_array[i+1]);
+            for j in histogram_array[i]..histogram_array[i+1]-1 {
+                tt.ind[m][j] = i;
             }
-        }
-        else if tt.nmodes == 4 {
-            forall i in 0..nslices-1 {
-                p_tt_quicksort3(tt, cmplt_ptr+1, histogram_array[i], histogram_array[i+1]);
-                for j in histogram_array[i]..histogram_array[i+1]-1 {
-                    tt.ind[m][j] = i;
-                }
-            }
-        }
-        else {
-            // Shift cmplt left one time, then do normal quicksort
-            var cmplt_ptr = c_ptrTo(cmplt);
-            var saved = cmplt[0];
-            c_memmove(cmplt_ptr, cmplt_ptr+1, (tt.nmodes-1)*8);
-            cmplt[tt.nmodes-1] = saved;
-
-            forall i in 0..nslices-1 {
-                p_tt_quicksort(tt, cmplt, histogram_array[i], histogram_array[i+1]);
-                for j in histogram_array[i]..histogram_array[i+1]-1 {
-                    tt.ind[m][j] = i;
-                }
-            }
-            // undo cmplt changes
-            saved = cmplt[tt.nmodes-1];
-            c_memmove(cmplt_ptr+1, cmplt_ptr, (tt.nmodes-1)*8);
-            cmplt[0] = saved;
         }
     }
 
@@ -272,7 +230,6 @@ module splatt_sort {
     private proc p_tt_quicksort2(tt : sptensor_t, cmplt, start : int, end : int)
     {
         var vmid : real;
-        //var imid : [0..1] int;
         var imid0 : int;
         var imid1 : int;
 
@@ -344,170 +301,6 @@ module splatt_sort {
     }
 
     /*########################################################################
-    #   Descriptipn:    Perfrom quicksort on a 3-mode tensor between start
-    #                   and end.
-    #
-    #   Parameters:     tt (sptensor_t):    The tensor to sort
-    #                   cmplt (int[]):      Mode permutation used for defining
-    #                                       tie-breaking order
-    #                   start (int):        First nonzero to sort
-    #                   end (int):          Last nonzero to sort
-    #
-    #   Return:         None
-    ########################################################################*/
-    private proc p_tt_quicksort3(tt : sptensor_t, cmplt, start : int, end : int)
-    {
-        var vmid : real;
-        var imid : [0..2] int;
-
-        var ind0 = c_ptrTo(tt.ind[cmplt[0]]);
-        var ind1 = c_ptrTo(tt.ind[cmplt[1]]);
-        var ind2 = c_ptrTo(tt.ind[cmplt[2]]);
-        var vals = c_ptrTo(tt.vals);
-
-        if (end-start) <= MIN_QUICKSORT_SIZE {
-            p_tt_insertionsort3(tt, cmplt, start, end);
-        }
-        else {
-            var i = start+1;
-            var j = end-1;
-            var k = start + ((end-start)/2);
-
-            // grab pivot
-            vmid = vals[k];
-            vals[k] = vals[start];
-            imid[0] = ind0[k];
-            imid[1] = ind1[k];
-            imid[2] = ind2[k];
-            ind0[k] = ind0[start];
-            ind1[k] = ind1[start];
-            ind2[k] = ind2[start];
-        
-            while i < j {
-                // if tt[i] > mid --> tt[i] is on wrong side
-                if p_ttqcmp3(ind0, ind1, ind2, i, imid) == 1 {
-                    // if tt[j] <= mid --> swap tt[i] and tt[j]
-                    if p_ttqcmp3(ind0, ind1, ind2, j, imid) < 1 {
-                        var vtmp = vals[i];
-                        vals[i] = vals[j];
-                        vals[j] = vtmp;
-                        var itmp = ind0[j];
-                        ind0[i] = ind0[j];
-                        ind0[j] = itmp;
-                        itmp = ind1[i];
-                        ind1[i] = ind1[j];
-                        ind1[j] = itmp;
-                        itmp = ind2[i];
-                        ind2[i] = ind2[j];
-                        ind2[j] = itmp;
-                        i += 1;
-                    }
-                    j -= 1;
-                }
-                else {
-                    // if tt[j] > mid --> tt[j] is on right side
-                    if p_ttqcmp3(ind0, ind1, ind2, j, imid) == 1 {
-                        j -= 1;
-                    }
-                    i += 1;
-                }
-            }
-
-            // if tt[i] > mid
-            if p_ttqcmp3(ind0, ind1, ind2, i, imid) == 1 {
-                i -= 1;
-            }
-            vals[start] = vals[i];
-            vals[i] = vmid;
-            ind0[start] = ind0[i];
-            ind1[start] = ind1[i];
-            ind2[start] = ind2[i];
-            ind0[i] = imid[0];
-            ind1[i] = imid[1];
-            ind2[i] = imid[2];
-            if i > start+1 {
-                p_tt_quicksort3(tt, cmplt, start, i);
-            }
-            i += 1; // skip pivot element
-            if end -i > 1 {
-                p_tt_quicksort3(tt, cmplt, i, end);
-            }    
-        }
-    }
-
-    /*########################################################################
-    #   Descriptipn:    Perfrom quicksort on a n-mode tensor between start
-    #                   and end.
-    #
-    #   Parameters:     tt (sptensor_t):    The tensor to sort
-    #                   cmplt (int[]):      Mode permutation used for defining
-    #                                       tie-breaking order
-    #                   start (int):        First nonzero to sort
-    #                   end (int):          Last nonzero to sort
-    #
-    #   Return:         None
-    ########################################################################*/
-    private proc p_tt_quicksort(tt : sptensor_t, cmplt, start : int, end : int)
-    {
-        var vmid : real;
-        var imid : [NUM_MODES_d] int;
-
-        var ind = c_ptrTo(tt.ind[0]);
-        var vals = c_ptrTo(tt.vals);
-        var nmodes = tt.nmodes;
-
-        if (end-start) <= MIN_QUICKSORT_SIZE {
-            p_tt_insertionsort(tt, cmplt, start, end);
-        }
-        else {
-            var i = start+1;
-            var j = end-1;
-            var k = start + ((end-start)/2);
-
-            // grab pivot
-            vmid = vals[k];
-            vals[k] = vals[start];
-            for m in 0..nmodes-1 {
-                ind = c_ptrTo(tt.ind[m]);
-                imid[m] = ind[k];
-                ind[k] = ind[start];
-            }
-            while i < j {
-                if p_ttqcmp(tt, cmplt, i, imid) == 1 {
-                    if p_ttqcmp(tt, cmplt, j, imid) < 1 {
-                        p_ttswap(tt, i, j);
-                        i += 1;
-                    }
-                    j -= 1;
-                }
-                else {
-                    if p_ttqcmp(tt, cmplt, j, imid) == 1 {
-                        j -= 1;
-                    }
-                    i += 1;
-                }
-            }
-            if p_ttqcmp(tt, cmplt, i, imid) == 1 {
-                i -= 1;
-            }
-            vals[start] = vals[i];
-            vals[i] = vmid;
-            for m in 0..nmodes-1 {
-                ind = c_ptrTo(tt.ind[m]);
-                ind[start] = ind[i];
-                ind[i] = imid[m];
-            }
-            if i > start+1 {
-                p_tt_quicksort(tt, cmplt, start, i);
-            }
-            i += 1;
-            if end - i > 1 {
-                p_tt_quicksort(tt, cmplt, i, end);
-            }
-        }
-    }
-
-    /*########################################################################
     #   Descriptipn:    Perfrom insertion sort on a 2-mode tensor between start
     #                   and end.
     #
@@ -547,88 +340,6 @@ module splatt_sort {
     }
 
     /*########################################################################
-    #   Descriptipn:    Perfrom insertion sort on a 3-mode tensor between start
-    #                   and end.
-    #
-    #   Parameters:     tt (sptensor_t):    The tensor to sort
-    #                   cmplt (int[]):      Mode permutation used for defining
-    #                                       tie-breaking order
-    #                   start (int):        First nonzero to sort
-    #                   end (int):          Last nonzero to sort
-    #
-    #   Return:         None
-    ########################################################################*/
-    private proc p_tt_insertionsort3(tt : sptensor_t, cmplt, start : int, end : int)
-    {
-        var ind0 = c_ptrTo(tt.ind[cmplt[0]]);
-        var ind1 = c_ptrTo(tt.ind[cmplt[1]]);
-        var ind2 = c_ptrTo(tt.ind[cmplt[2]]);
-        var vals = c_ptrTo(tt.vals);
-        var vbuf : real;
-        var ibuf : int;
-
-        for i in start+1..end-1 {
-            var j = i;
-            while j > start && p_ttcmp3(ind0, ind1, ind2, i, j-1) < 0 {
-                j -= 1;
-            }
-
-            vbuf = vals[i];
-            // Shift all data
-            c_memmove(vals+j+1, vals+j, (i-j)*8);
-            vals[j] = vbuf;
-            ibuf = ind0[i];
-            c_memmove(ind0+j+1, ind0+j, (i-j)*8);
-            ind0[j] = ibuf;
-            ibuf = ind1[i];
-            c_memmove(ind1+j+1, ind1+j, (i-j)*8);
-            ind1[j] = ibuf;
-            ibuf = ind2[i];
-            c_memmove(ind2+j+1, ind2+j, (i-j)*8);
-            ind2[j] = ibuf;
-        }
-    }
-
-    /*########################################################################
-    #   Descriptipn:    Perfrom insertion sort on a n-mode tensor between start
-    #                   and end.
-    #
-    #   Parameters:     tt (sptensor_t):    The tensor to sort
-    #                   cmplt (int[]):      Mode permutation used for defining
-    #                                       tie-breaking order
-    #                   start (int):        First nonzero to sort
-    #                   end (int):          Last nonzero to sort
-    #
-    #   Return:         None
-    ########################################################################*/
-    private proc p_tt_insertionsort(tt : sptensor_t, cmplt, start : int, end : int)
-    {
-        var ind = c_ptrTo(tt.ind[0]);
-        var vals = c_ptrTo(tt.vals);
-        var nmodes = tt.nmodes;
-        var vbuf : real;
-        var ibuf : int;
-
-        for i in start+1..end-1 {
-            var j = i;
-            while j > start && p_ttcmp(tt, cmplt, i, j-1) < 0 {
-                j -= 1;
-            }
-
-            vbuf = vals[i];
-            // Shift all data
-            c_memmove(vals+j+1, vals+j, (i-j)*8);
-            vals[j] = vbuf;
-            for m in 0..nmodes-1 {
-                ind = c_ptrTo(tt.ind[m]);
-                ibuf = ind[i];
-                c_memmove(ind+j+1, ind+j, (i-j)*8);
-                ind[j] = ibuf;
-            }
-        }
-    }
-
-    /*########################################################################
     #   Descriptipn:    Compares ind*[i] and j[*] for 2-mode tensors
     #
     #   Parameters:     ind0 (int[]):   Primary mode to compare
@@ -651,63 +362,6 @@ module splatt_sort {
         }
         else if ind1[j] < ind1[i] {
             return 1;
-        }
-        return 0;
-    }
-
-    /*########################################################################
-    #   Descriptipn:    Compares ind*[i] and j[*] for 3-mode tensors
-    #
-    #   Parameters:     ind0 (int[]):   Primary mode to compare
-    #                   ind1 (int[]):   Secondary mode to compare
-    #                   ind2 (int[]):   Final tie-breaking mode
-    #                   i (int):        Index into ind*
-    #                   j (int):        Second index into ind*
-    #
-    #   Return:         -1 if ind[i] < ind[j], 1 if ind[i] > ind[j], 0 if equal
-    ########################################################################*/
-    private proc p_ttcmp3(ind0, ind1, ind2, i : int, j: int)
-    {
-        if ind0[i] < ind0[j] {
-            return -1;
-        }
-        else if ind0[j] < ind0[i] {
-            return 1;
-        }
-        if ind1[i] < ind1[j] {
-            return -1;
-        }
-        else if ind1[j] < ind1[i] {
-            return 1;
-        }
-        if ind2[i] < ind2[j] {
-            return -1;
-        }
-        else if ind2[j] < ind2[i] {
-            return 1;
-        }
-        return 0;
-    }
-
-    /*########################################################################
-    #   Descriptipn:    Compares ind*[i] and j[*] for n-mode tensors
-    #
-    #   Parameters:     tt (sptensor_t):    Tensor we are sorting
-    #                   cmplt (int[]):      Mode permutation 
-    #                   i (int):            Index into ind*
-    #                   j (int):            Second index into ind*
-    #
-    #   Return:         -1 if ind[i] < ind[j], 1 if ind[i] > ind[j], 0 if equal
-    ########################################################################*/
-    private proc p_ttcmp(tt: sptensor_t, cmplt, i : int, j: int)
-    {
-        for m in 0..tt.nmodes-1 {
-            if tt.ind[cmplt[m]][i] < tt.ind[cmplt[m]][j] {
-                return -1;
-            }
-            else if tt.ind[cmplt[m]][j] < tt.ind[cmplt[m]][i] {
-                return 1;
-            }
         }
         return 0;
     }
@@ -737,84 +391,5 @@ module splatt_sort {
             return 1;
         }
         return 0;
-    }
-
-    /*########################################################################
-    #   Descriptipn:    Compares ind*[i] and j[*] for 3-mode tensors
-    #
-    #   Parameters:     ind0 (int[]):   Primary mode to compare
-    #                   ind1 (int[]):   Secondary mode to compare
-    #                   ind2 (int[]):   Final tie-breaking mode
-    #                   i (int):        Index into ind*[]
-    #                   j (int[3]):     Indices we are comparing i against
-    #
-    #   Return:         -1 if ind[i] < j, 1 if ind[i] > j, 0 if equal
-    ########################################################################*/
-    private proc p_ttqcmp3(ind0, ind1, ind2, i : int, j)
-    {
-        if ind0[i] < j[0] {
-            return -1;
-        }
-        else if j[0] < ind0[i] {
-            return 1;
-        }
-        if ind1[i] < j[1] {
-            return -1;
-        }
-        else if j[1] < ind1[i] {
-            return 1;
-        }
-        if ind2[i] < j[2] {
-            return -1;
-        }
-        else if j[2] < ind2[i] {
-            return 1;
-        }
-        return 0;
-    }
-
-    /*########################################################################
-    #   Descriptipn:    Compares ind*[i] and j[*] for n-mode tensors
-    #
-    #   Parameters:     tt (sptensor_t):    Tensor we are sorting
-    #                   cmplt (int[]):      Mode permutation 
-    #                   i (int):            Index into ind*
-    #                   j (int[]):          Coordinate we are comparing against
-    #
-    #   Return:         -1 if ind[i] < ind[j], 1 if ind[i] > ind[j], 0 if equal
-    ########################################################################*/
-    private proc p_ttqcmp(tt: sptensor_t, cmplt, i : int, j)
-    {
-        for m in 0..tt.nmodes-1 {
-            if tt.ind[cmplt[m]][i] < j[cmplt[m]] {
-                return -1;
-            }
-            else if j[cmplt[m]] < tt.ind[cmplt[m]][i] {
-                return 1;
-            }
-        }
-        return 0;
-    }
-
-    /*########################################################################
-    #   Descriptipn:    Swap nonzeros i and j
-    #
-    #   Parameters:     tt (sptensor_t):    Tensor we are sorting
-    #                   i (int):            First nonzero to swap
-    #                   j (int[]):          Second nonzero to swap
-    #
-    #   Return:         -1 if ind[i] < ind[j], 1 if ind[i] > ind[j], 0 if equal
-    ########################################################################*/
-    private proc p_ttswap(tt: sptensor_t, i : int, j)
-    {
-        var vtmp = tt.vals[i];
-        tt.vals[i] = tt.vals[j];
-        tt.vals[j] = vtmp;
-        var itmp : int;
-        for m in 0..tt.nmodes-1 {
-            itmp = tt.ind[m][i];
-            tt.ind[m][i] = tt.ind[m][j];
-            tt.ind[m][j] = itmp;
-        }
     }
 }

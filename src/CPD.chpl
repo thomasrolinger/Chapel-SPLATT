@@ -167,11 +167,7 @@ module CPD {
                 calc_gram_inv(m, nmodes, aTa);
                 /* A = M1 * M2 */
                 c_memset(mats[m].vals_ref, 0, mats[m].I * mats[m].J * 8);
-                timers_g.timers["MAT MULT"].start();
-                //gemm(m1.vals, aTa[nmodes].vals, mats[m].vals, 1, 0); // faster than dot
-                //mats[m].vals = dot(m1.vals, aTa[nmodes].vals);
                 mat_matmul(m1, aTa[nmodes], mats[m]);
-                timers_g.timers["MAT MULT"].stop();
 
                 if it == 0 {
                     mat_normalize(mats[m], lambda_vals, MAT_NORM_2, thds);
@@ -223,8 +219,6 @@ module CPD {
 
         /* Compute inner product of tensor with new model */
         const inner : real = p_tt_kruskal_inner(nmodes, thds, lambda_vals, mats, m1);
-
-        //writef("norm_mats = %dr, inner = %dr\n", norm_mats, inner);
 
         /*
             We actually want sqrt(<X,X> + <Y,Y> - 2<X,Y>), but if the fit is perfect

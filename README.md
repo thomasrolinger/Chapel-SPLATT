@@ -2,6 +2,9 @@
 
 Port of SPLATT to Chapel, with an accompanying benchmark script.
 
+Currently, this is only the shared-memory implementation of SPLATT.
+A multi-locale version will be started soon as a new branch.
+
 Currently how to compile Chapel code:
 
 ```bash
@@ -31,3 +34,15 @@ the actual data set is harcoded for my own system, so if you are actually going 
 run this, then you need to edit the script.
 
 More details will come later (maybe).
+
+# Things to work on
+
+1.) Fix/look at CSF allocation and see why it seems to be "broken" for some tensors.
+Possibly just reimplement it using SPLATT's newer parallel approach.
+2.) Use inline functions where ever SPLATT does
+3.) Determine why matrix multiply is slower OR get the more numerically stable
+approach for computing the inverse to work.
+4.) Start on multi-locale version. This will require investigating the reference
+C/MPI code and understanding what is going on.
+5.) Implementing mode tiling (perhaps only if it is necessary for the multi-locale
+version; otherwise, it is something I rarely use myself in practice).

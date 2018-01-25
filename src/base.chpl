@@ -64,13 +64,10 @@ module Base {
     *
     ******************************/
     var NNZ_d : domain(1) = 0..DEFAULT_NNZ-1;                   /** Domain for NNZ indices. Gets resized once NNZ is known */
-    var NUM_MODES_d: domain(1) = 0..MAX_NMODES-1;               /** Possibly resize this once the
-                                                                  number of modes is known */
+    var NUM_MODES_d: domain(1) = 0..MAX_NMODES-1;               /** Resize this once the number of modes is known */
     var CSF_SPARSITY_VALS_d : domain(1) = 0..DEFAULT_NNZ-1;     /** The csf_sparsity class has a 'vals' array whose length
                                                                     is not known until runtime. We'll resize this then */
     var NUM_TILES_d : domain(1) = 0..MAX_NMODES-1;              /** Number of tiles in CSF; not known until runtime so we'll
                                                                     resize this later. */
     var LAMBDA_d : domain(1) = 0..DEFAULT_NFACTORS-1;
-    var FACTORS_d : domain(1) = 0..DEFAULT_NFACTORS-1; // commonly used domain
-
 }
