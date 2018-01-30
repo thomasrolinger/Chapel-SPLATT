@@ -11,9 +11,9 @@ module Matrices {
     use Base;
     use BLAS;
     use Norm;
-    //use LAPACK;
+    use LAPACK;
     use LinearAlgebra;
-    //use ClassicLAPACK;
+    use ClassicLAPACK;
     use Barriers;
     use IO.FormattedIO;
 
@@ -63,7 +63,7 @@ module Matrices {
             form upper triangual normal equations. We are ignoring
             the regularization parameter, so this loop is simplified
         */
-        const ref neqs = neq_matrix.vals;
+        ref neqs = neq_matrix.vals;
           
         const b = new Barrier(numThreads_g);
 
@@ -77,6 +77,8 @@ module Matrices {
                     neqs(i,j) = 1.0;
                 }
             }
+            b.barrier();
+            
             /* now Hadamard product of all aTa matrices */
             for m in 0..nmodes-1 {
                 if m == mode {
@@ -90,12 +92,12 @@ module Matrices {
                         neqs[i,j] *= mat[i,j];
                     }
                 }
+                b.barrier();
             } /* for each mode */
 
             b.barrier();
 
             /* now copy lower triangle */
-            //for i in 0..N-1 {
             for i in I_begin..I_end-1 {
                 for j in 0..i-1 {
                     neqs[i,j] = neqs[j,i];
@@ -249,18 +251,24 @@ module Matrices {
             arrays.
         */  
         timers_g.timers["MAT A^TA"].start();
-        var uplo = Uplo.Upper;
-        var trans = Op.T;
-        var order = Order.Row;
+        var uplo = Uplo.Lower;
+        var trans = Op.N;
+        var order = Order.Col;
+        var N : c_int = A.J : c_int;
+        var K : c_int = A.I : c_int;
+        var lda = N;
+        var ldc = N;
         var alpha : c_double = 1.0;
         var beta : c_double = 0.0;
-        syrk(A.vals, ret.vals, alpha, beta, uplo, trans, order);
-    
-        forall i in 1..ret.I-1 {
-            for j in 0..i-1 {
-                ret.vals(i,j) = ret.vals(j,i);
-            }
-        }
+   
+        /*
+            Assume matrices are stored in column-major ordering and perform
+            A*A^T to account for the fact that our matrices are actually in
+            row-major ordering. The point of doing this is because it is typically
+            inefficient to use row-major matrices in BLAS because the routines often
+            just allocate a temporary matrix and transpose it.
+        */
+        cblas_dsyrk(order, uplo, trans, N, K, alpha, A.vals, lda, beta, ret.vals, ldc); 
 
         timers_g.timers["MAT A^TA"].stop();
     }
@@ -278,38 +286,21 @@ module Matrices {
     #
     #   Return:         None
     ########################################################################*/
-    /*proc mat_solve_normals(mode, nmodes, aTa, rhs, reg)
+    proc mat_solve_normals(mode, nmodes, aTa, rhs, reg)
     {
         timers_g.timers["INVERSE"].start();
-
         p_form_gram(aTa[nmodes], aTa, mode, nmodes, reg);
-        
-        var uplo = "U"; 
+        var uplo = "L";
         ref neqs = aTa[nmodes].vals;
-
-        /* Cholesky factorization */
-        potrf(lapack_memory_order.row_major, uplo, neqs);
-
-        // Solve against RHS 
-
-        /*
-          Not quite sure what's going on here. The standard defintion for potrs says
-          that nrhs is equal to the number of columns in BX (i.e. rhs.vals). However,
-          SPLATT sets nrhs to be the number of rows in BX. By using the built-in Chapel
-          wrapper for potrs, we only solve the first N equations, where N is the number of
-          columns in rhs.vals (i.e. number of factors). Furthermore, SPLATT sets ldb to be
-          N. However, the only way I can get the same results as SPLATT is by calling the LAPACKE
-          dpotrs function directly and setting nrhs to the number of rows in BX and setting ldb
-          to the number of rows in BX. I am not sure why this is so different from what SPLATT
-          is doing, since it is also directly calling LAPACK.
-        */
-        var N: c_int = neqs.domain.dim(1).size : c_int;
-        var nrhs : c_int = rhs.vals.domain.dim(1).size : c_int;
-        var lda : c_int = neqs.domain.dim(2).size : c_int;
-        var ldb : c_int = rhs.vals.domain.dim(1).size : c_int;
-        LAPACKE_dpotrs(lapack_memory_order.row_major, uplo, N, nrhs, neqs, lda, rhs.vals, ldb);
+        var N : c_int = aTa[0].J : c_int;
+        var lda = N;
+        var ldb = N;
+        var order = N;
+        var nrhs : c_int = rhs.I : c_int;
+        LAPACKE_dpotrf(lapack_memory_order.column_major, uplo, order, neqs, lda);
+        LAPACKE_dpotrs(lapack_memory_order.column_major, uplo, order, nrhs, neqs, lda, rhs.vals, ldb);
         timers_g.timers["INVERSE"].stop();
-    }*/
+    }
     
     /*########################################################################
     #   Description:    Normalize the columns of A and return the norms in

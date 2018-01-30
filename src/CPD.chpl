@@ -106,7 +106,7 @@ module CPD {
         var thds = thd_init(nthreads, 3, lengths);
 
         // m1 is the output of the MTTKRP
-        var m1 = mats[nmodes];
+        ref m1 = mats[nmodes];
 
         // aTa is an array of dense_matrics. Each matrix in aTa
         // stores the result of A^T * A where A is the factor matrix
@@ -160,14 +160,14 @@ module CPD {
                 mttkrp_csf(tensors, mats, m, thds, mttkrp_ws, args);
                 timers_g.timers["MTTKRP"].stop();
 
-                //par_memcpy(mats[m].vals_ref, m1.vals_ref, m1.I * nfactors);
-                //mat_solve_normals(m, nmodes, aTa, mats[m], args.regularization);
+                par_memcpy(mats[m].vals_ref, m1.vals_ref, m1.I * nfactors);
+                mat_solve_normals(m, nmodes, aTa, mats[m], args.regularization);
 
                 /* M2 = (CtC * BtB *...) ^ -1 */
-                calc_gram_inv(m, nmodes, aTa);
+                //calc_gram_inv(m, nmodes, aTa);
                 /* A = M1 * M2 */
-                c_memset(mats[m].vals_ref, 0, mats[m].I * mats[m].J * 8);
-                mat_matmul(m1, aTa[nmodes], mats[m]);
+                //c_memset(mats[m].vals_ref, 0, mats[m].I * mats[m].J * 8);
+                //mat_matmul(m1, aTa[nmodes], mats[m]);
 
                 if it == 0 {
                     mat_normalize(mats[m], lambda_vals, MAT_NORM_2, thds);

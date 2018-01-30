@@ -781,7 +781,7 @@ module MTTKRP {
         /* Clear output matrix */
         const ref M = mats[nmodes];
         M.I = tensors[0].dims[mode];
-        M.matrix_domain = {0..M.I-1, 0..M.J-1};
+        //M.matrix_domain = {0..M.I-1, 0..M.J-1};
         M.vals = 0.0;
         M.vals_ref = c_ptrTo(M.vals);
         c_memset(M.vals_ref, 0, 8*M.I*M.J);
