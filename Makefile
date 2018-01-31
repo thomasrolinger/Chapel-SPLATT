@@ -1,6 +1,6 @@
 INC_DIRS=${CBLAS_DIR}
 LIB_DIRS=${BLAS_LIBS}
-LIBS=-lopenblas -lgfortran -lpthread
+LIBS=-lopenblas -lgfortran -lpthread -lgomp
 CHPL_FLAGS=--permit-unhandled-module-errors -O --specialize --fast --no-llvm --local --mem=${CHPL_MEM} --tasks=${CHPL_TASKS} --ccflags="-std=c99 -funroll-loops -fgnu89-inline -fstrict-aliasing -fPIC -fopenmp"
 
 PROFILE=0

@@ -161,6 +161,7 @@ module CPD {
                 timers_g.timers["MTTKRP"].stop();
 
                 par_memcpy(mats[m].vals_ref, m1.vals_ref, m1.I * nfactors);
+                //mats[m].vals = m1.vals;
                 mat_solve_normals(m, nmodes, aTa, mats[m], args.regularization);
 
                 /* M2 = (CtC * BtB *...) ^ -1 */

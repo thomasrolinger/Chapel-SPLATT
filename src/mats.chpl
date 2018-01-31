@@ -77,7 +77,7 @@ module Matrices {
                     neqs(i,j) = 1.0;
                 }
             }
-            b.barrier();
+            //b.barrier();
             
             /* now Hadamard product of all aTa matrices */
             for m in 0..nmodes-1 {
@@ -92,10 +92,10 @@ module Matrices {
                         neqs[i,j] *= mat[i,j];
                     }
                 }
-                b.barrier();
+                //b.barrier();
             } /* for each mode */
 
-            b.barrier();
+            //b.barrier();
 
             /* now copy lower triangle */
             for i in I_begin..I_end-1 {
@@ -288,7 +288,7 @@ module Matrices {
     ########################################################################*/
     proc mat_solve_normals(mode, nmodes, aTa, rhs, reg)
     {
-        timers_g.timers["INVERSE"].start();
+        //timers_g.timers["INVERSE"].start();
         p_form_gram(aTa[nmodes], aTa, mode, nmodes, reg);
         var uplo = "L";
         ref neqs = aTa[nmodes].vals;
@@ -297,6 +297,7 @@ module Matrices {
         var ldb = N;
         var order = N;
         var nrhs : c_int = rhs.I : c_int;
+        timers_g.timers["INVERSE"].start();
         LAPACKE_dpotrf(lapack_memory_order.column_major, uplo, order, neqs, lda);
         LAPACKE_dpotrs(lapack_memory_order.column_major, uplo, order, nrhs, neqs, lda, rhs.vals, ldb);
         timers_g.timers["INVERSE"].stop();
