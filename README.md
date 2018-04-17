@@ -39,10 +39,8 @@ More details will come later (maybe).
 
 1.) Fix/look at CSF allocation and see why it seems to be "broken" for some tensors.
 Possibly just reimplement it using SPLATT's newer parallel approach.
-2.) Use inline functions where ever SPLATT does
-3.) Determine why matrix multiply is slower OR get the more numerically stable
-approach for computing the inverse to work.
-4.) Start on multi-locale version. This will require investigating the reference
+2.) Start on multi-locale version. This will require investigating the reference
 C/MPI code and understanding what is going on.
-5.) Implementing mode tiling (perhaps only if it is necessary for the multi-locale
+3.) Do a pass through of the code and try to make things more "Chapel-like".
+4.) Implementing mode tiling (perhaps only if it is necessary for the multi-locale
 version; otherwise, it is something I rarely use myself in practice).
