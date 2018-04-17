@@ -11,8 +11,10 @@ Currently how to compile Chapel code:
 $ make
 ```
 
-This code uses BLAS, so you need to have a BLAS library built on your system
-and then set the following environment variables:
+This code uses BLAS and LAPACK. I have been only using OpenBLAS, which provides
+both BLAS and LAPACK routines, so the build process is assuming that you are using OpenBLAS.
+You'll need to modify the Makefile if you want to use a different library. You need to have these OpenBLAS 
+built on your system and then set the following environment variables:
 
 ```bash
 export CBLAS_DIR=/path/to/blas/include/
